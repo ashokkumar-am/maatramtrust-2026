@@ -1,0 +1,219 @@
+# Project Status
+
+Living document tracking implementation status of backend features. Update this
+whenever an endpoint, model, or lib helper is added or changed.
+
+_Last updated: 2026-07-21 (Annadhana daily campaign updates: day-wise media feed + daily breakfast sponsors)_
+
+## API Endpoints
+
+| Endpoint                                     | Method | Status      | Notes                                                                           |
+| -------------------------------------------- | ------ | ----------- | ------------------------------------------------------------------------------- |
+| `/api/v1/contact`                            | POST   | ✅ Done     | Creates a contact. zod-validated; 400 on invalid input.                         |
+| `/api/v1/newsletter`                         | POST   | ✅ Done     | Subscribes an email. zod-validated; 409 if already subscribed.                  |
+| `/api/v1/banners`                            | GET    | ✅ Done     | Public: active homepage banners, ordered.                                       |
+| `/api/v1/categories`                         | GET    | ✅ Done     | Public: active categories; `?type=`, `?parent=<id>`/`none` filters; icon/image. |
+| `/api/v1/students`                           | GET    | ✅ Done     | Public: students for sponsorship; funded sort to bottom.                        |
+| `/api/v1/students/[id]`                      | GET    | ✅ Done     | Public: one student view; 404 if unknown.                                       |
+| `/api/v1/donations`                          | GET    | ✅ Done     | Public donor wall: recent captured donations, names masked.                     |
+| `/api/v1/donations`                          | POST   | ✅ Done     | Start a donation: Razorpay order (+ optional category).                         |
+| `/api/v1/donations/confirm`                  | POST   | ✅ Done     | Verify + capture; sends PDF receipt. Idempotent with webhook.                   |
+| `/api/v1/documents`                          | GET    | ✅ Done     | Public: active documents grouped by type, newest year first.                    |
+| `/api/v1/documents/[id]/download`            | GET    | ✅ Done     | Redirects to the Cloudinary URL as an attachment. 404 if unknown.               |
+| `/api/v1/blog`                               | GET    | ✅ Done     | Public: published posts; `?category=<slug>`, `?q=`, `?page`/`?limit`.           |
+| `/api/v1/blog/[slug]`                        | GET    | ✅ Done     | Public: one published post by slug (category populated). 404.                   |
+| `/api/v1/annadhana/campaigns`                | GET    | ✅ Done     | Public: active Annadhana Sevai campaigns with amount raised.                    |
+| `/api/v1/annadhana/bookings`                 | POST   | ✅ Done     | Self-booking for an occasion: Razorpay order + pending booking.                 |
+| `/api/v1/annadhana/bookings/confirm`         | POST   | ✅ Done     | Verify + mark booking received; idempotent with webhook.                        |
+| `/api/v1/annadhana/campaigns/[slug]/updates` | GET    | ✅ Done     | Public day-wise campaign feed: media + daily breakfast sponsors (paginated).    |
+| `/api/razorpay/webhook`                      | POST   | ✅ Existing | Razorpay payment webhook.                                                       |
+| `/api/auth/[...nextauth]`                    | —      | ✅ Existing | NextAuth handler.                                                               |
+| `/api/docs`                                  | GET    | ✅ Done     | OpenAPI 3.0 spec (JSON). Static.                                                |
+| `/api-docs`                                  | page   | ✅ Done     | Swagger UI (renders `/api/docs`).                                               |
+
+## Admin API (`/api/admin`, admin-only)
+
+Full CRUD per resource; every handler is gated by `requireAdmin` (401/403).
+List endpoints are paginated (`?page`, `?limit` — default 50, max 100) and
+searchable (`?q=` — case-insensitive across each resource's key fields).
+
+| Endpoint                                | Methods                     | Notes                                                                                                                                                                     |
+| --------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/admin/contacts`                   | GET (list), POST            | Create/list contacts.                                                                                                                                                     |
+| `/api/admin/contacts/[id]`              | GET, PATCH, DELETE          | Read/update/delete one contact.                                                                                                                                           |
+| `/api/admin/newsletter`                 | GET (list), POST            | Create/list subscriptions.                                                                                                                                                |
+| `/api/admin/newsletter/[id]`            | GET, PATCH, DELETE          | Read/update/delete one subscription.                                                                                                                                      |
+| `/api/admin/students`                   | GET (list), POST            | Create/list students (audit-stamped).                                                                                                                                     |
+| `/api/admin/students/[id]`              | GET, PATCH, DELETE          | Read/update/delete one student.                                                                                                                                           |
+| `/api/admin/students/[id]/sponsor`      | POST                        | Manually record a sponsorship (donor + year); fires `student.sponsored`.                                                                                                  |
+| `/api/admin/students/[id]/sponsorships` | GET                         | Year-wise sponsorship history (donor details grouped by year).                                                                                                            |
+| `/api/admin/banners`                    | GET (list), POST            | Create/list homepage banners.                                                                                                                                             |
+| `/api/admin/banners/[id]`               | GET, PATCH, DELETE          | Read/update/delete one banner. DELETE + replaced-asset update clean Cloudinary.                                                                                           |
+| `/api/admin/categories`                 | GET (list), POST            | Create/list categories (auto-slug; 409 duplicate slug; 400 if parent unknown).                                                                                            |
+| `/api/admin/categories/[id]`            | GET, PATCH, DELETE          | Update/delete one category; validates parent; 409 delete if posts/sub-categories; cleans icon/image on delete/replace.                                                    |
+| `/api/admin/documents`                  | GET (list), POST            | List documents / record Cloudinary metadata (url + publicId) after upload.                                                                                                |
+| `/api/admin/documents/[id]`             | GET, PATCH, DELETE          | Read/update/delete one document. DELETE/replace cleans the Cloudinary asset.                                                                                              |
+| `/api/admin/documents/upload`           | POST                        | Multipart file → server-side Cloudinary upload → recorded (admin).                                                                                                        |
+| `/api/admin/donations`                  | GET (list, paginated), POST | List web+cash donations (`?page`/`?limit`); POST records a cash/offline donation (captured; backdatable).                                                                 |
+| `/api/admin/donations/[id]/void`        | POST                        | Void/refund a captured donation (soft → "refunded"; drops from totals).                                                                                                   |
+| `/api/admin/blog`                       | GET (list), POST            | Create/list posts (auto-slug; 409 duplicate slug; 400 if category missing).                                                                                               |
+| `/api/admin/blog/[id]`                  | GET, PATCH, DELETE          | Read/update/delete one post; validates category; cleans replaced/removed cover.                                                                                           |
+| `/api/admin/annadhana/campaigns`        | GET (list), POST            | Create/list Annadhana Sevai campaigns (auto-slug; 409 duplicate slug).                                                                                                    |
+| `/api/admin/annadhana/campaigns/[id]`   | GET, PATCH, DELETE          | Update/delete one campaign; 409 delete if it has bookings; cleans Cloudinary image on delete/replace.                                                                     |
+| `/api/admin/annadhana/bookings`         | GET (list), POST            | Booking history (`?q`, `?occasion`, `?status`, `?campaign`, `?when=past\|upcoming`, `?from`/`?to`); POST records an offline booking (received; fires `annadhana.booked`). |
+| `/api/admin/annadhana/bookings/[id]`    | GET, PATCH, DELETE          | Read/update one booking (details or `status: "cancelled"`); DELETE blocked (409) once money is received.                                                                  |
+| `/api/admin/annadhana/updates`          | GET (list), POST            | Daily campaign updates (`?campaign=` filter); POST posts a day's media (409 duplicate campaign+day).                                                                      |
+| `/api/admin/annadhana/updates/[id]`     | GET, PATCH, DELETE          | Edit/delete a daily update; removed/replaced Cloudinary media cleaned up.                                                                                                 |
+
+## Models (`src/models`)
+
+| Model                    | Status  | Fields                                                                                                                                                                                                                                                                           |
+| ------------------------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ContactModel`           | ✅ Done | name, email, mobile, comments, isSource, timestamps                                                                                                                                                                                                                              |
+| `NewsletterModel`        | ✅ Done | email (unique), isSource, timestamps                                                                                                                                                                                                                                             |
+| `StudentModel`           | ✅ Done | student_id (unique), name, photo, dob, gender, student_type, school/college fields, amount, isStatus, isDonate, createdBy/updatedBy (audit), timestamps                                                                                                                          |
+| `StudentPaymentModel`    | ✅ Done | studentId (ref), studentName, year, donorName/Email/Phone, amount, receivedAmt, currency, status, orderId, payId, note, audit, timestamps                                                                                                                                        |
+| `BannerModel`            | ✅ Done | title, mediaType (image/video), url + public_id (Cloudinary), alt, caption, link, order, isActive, createdBy/updatedBy (audit), timestamps                                                                                                                                       |
+| `CategoryModel`          | ✅ Done | name, slug (unique), type (namespace), parent (self-ref → sub-categories), description, icon + iconPublicId, image + imagePublicId (Cloudinary), order, isActive, audit, timestamps                                                                                              |
+| `DocumentModel`          | ✅ Done | `OrgDocument`: type (annual-report/itr), year, title, fileName, url + publicId (Cloudinary, unique) + resourceType, contentType, size, isActive, audit, timestamps                                                                                                               |
+| `BlogModel`              | ✅ Done | `BlogPost`: title, slug (unique), category (ref), excerpt, content, coverImage + coverPublicId, tags, status (draft/published), publishedAt, audit, timestamps                                                                                                                   |
+| `AnnadhanaCampaignModel` | ✅ Done | title, slug (unique), description, image + imagePublicId (Cloudinary), minAmount, targetAmount, startDate/endDate, order, isActive, audit, timestamps                                                                                                                            |
+| `AnnadhanaBookingModel`  | ✅ Done | campaignId (ref) + campaignTitle, occasion (birthday/anniversary/memorial/other) + occasionDetail, honoreeName, eventDate, donor fields, amount/receivedAmt/currency, status (pending/received/failed/cancelled), source (online/manual), orderId/payId, note, audit, timestamps |
+| `AnnadhanaUpdateModel`   | ✅ Done | Day-wise campaign update: campaignId (ref) + campaignTitle, date (unique per campaign/day), title, description, media[] (url + publicId + image/video), isActive, audit, timestamps                                                                                              |
+
+## Server Actions (`src/app/actions`)
+
+| Action        | Status      | Notes                                                                                        |
+| ------------- | ----------- | -------------------------------------------------------------------------------------------- |
+| `students.ts` | ✅ Done     | `createStudentAction` / `updateStudentAction` — auth-gated, zod-validated, stamp audit user. |
+| `sponsor.ts`  | ✅ Done     | `createStudentSponsorshipOrder` — Razorpay order to sponsor a student (records pending).     |
+| `theme.ts`    | ✅ Existing | Persist theme preference cookie.                                                             |
+
+## Lib Helpers (`src/lib`)
+
+| Helper                   | Status      | Notes                                                                                                                                                                                                                                                                |
+| ------------------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mongoose.ts`            | ✅ Done     | Cached Mongoose connection (`connectMongoDB`). Used by v1 API routes.                                                                                                                                                                                                |
+| `mongodb.ts`             | ✅ Existing | Native `mongodb` driver `clientPromise`. Used by `auth.ts`, `donations.ts`.                                                                                                                                                                                          |
+| `donations.ts`           | ✅ Done     | Donation ledger (native driver): order/capture-once, cash entry (backdatable), void/refund, admin list, masked wall.                                                                                                                                                 |
+| `donation-fulfilment.ts` | ✅ Done     | On the capture transition: build PDF receipt + fire `donation.received` (once).                                                                                                                                                                                      |
+| `receipt.ts`             | ✅ Done     | `generateDonationReceipt()` — branded PDF receipt via pdf-lib (80G-upgradeable).                                                                                                                                                                                     |
+| `razorpay.ts`            | ✅ Existing | Razorpay client + donation constants (min amount, currency, public key id).                                                                                                                                                                                          |
+| `validations.ts`         | ✅ Done     | Shared zod schemas (contact, newsletter, student — create + update).                                                                                                                                                                                                 |
+| `students.ts`            | ✅ Done     | Student write ops for Server Actions; delegates to `studentRepository`.                                                                                                                                                                                              |
+| `audit.ts`               | ✅ Done     | `getAuditUser()` / `toAuditUser()` map the session to the audit shape.                                                                                                                                                                                               |
+| `openapi.ts`             | ✅ Done     | OpenAPI 3.0 spec (single source of truth for `/api/docs`).                                                                                                                                                                                                           |
+| `repository.ts`          | ✅ Done     | Generic paginated Mongo CRUD (`createMongoRepository`), optional audit; update: `null` clears a field ($unset).                                                                                                                                                      |
+| `resources.ts`           | ✅ Done     | Configured repos: contact, newsletter, student, banner, category, document, blog, annadhana campaign/booking.                                                                                                                                                        |
+| `admin-auth.ts`          | ✅ Done     | `requireAdmin()` guard (401/403) for admin Route Handlers.                                                                                                                                                                                                           |
+| `crud-route.ts`          | ✅ Done     | Factory for admin CRUD; hooks: `beforeDelete`, `afterDelete`, `afterUpdate`, async `validate`.                                                                                                                                                                       |
+| `cloudinary.ts`          | ✅ Done     | Cloudinary server SDK: upload (docs/covers), destroy asset, configured check.                                                                                                                                                                                        |
+| `banners.ts`             | ✅ Done     | `getActiveBanners()` serializable view; shared by public route + home page.                                                                                                                                                                                          |
+| `sponsorships.ts`        | ✅ Done     | Sponsorship service: record intent/manual, mark received (webhook), year-wise fetch.                                                                                                                                                                                 |
+| `annadhana.ts`           | ✅ Done     | Annadhana Sevai service: booking intent/manual/received/failed by order, filtered history, active campaigns + raised totals, bookable-campaign resolver, daily-update listing + public campaign feed (media joined with each day's sponsors from received bookings). |
+| `student-view.ts`        | ✅ Done     | Public serializable student list/detail for the sponsor page.                                                                                                                                                                                                        |
+| `documents.ts`           | ✅ Done     | Public document listing (grouped by type) + download-target resolver.                                                                                                                                                                                                |
+| `blog.ts`                | ✅ Done     | Public blog reads: published posts (by category) + detail, category + author populated.                                                                                                                                                                              |
+| `categories.ts`          | ✅ Done     | `validateCategoryParent()` — admin API parent-existence check.                                                                                                                                                                                                       |
+| `admin-metrics.ts`       | ✅ Done     | Dashboard overview counts + money raised: captured donations + received sponsorships + received annadhana bookings.                                                                                                                                                  |
+| `dashboard-auth.ts`      | ✅ Done     | `requireAdminPage()` guard for dashboard Server Components (redirects).                                                                                                                                                                                              |
+| `roles.ts`               | ✅ Done     | Role constants + `isAdminEmail()` (ADMIN_EMAILS allowlist → admin role in session).                                                                                                                                                                                  |
+| `email/`                 | ✅ Done     | Generic Amazon SES triggers. `triggerEmail(event, payload)`; raw-MIME attachments.                                                                                                                                                                                   |
+
+## Email (Amazon SES)
+
+Provider-agnostic, non-blocking (`after()`), fire-and-forget. Sends both a user
+confirmation and an admin notification per event. No-ops safely (logged) when
+SES env vars are unset. Add a trigger by extending `src/lib/email/events.ts`.
+Messages with attachments (e.g. the donor's PDF receipt on `donation.received`)
+are sent as raw MIME (`src/lib/email/mime.ts`); others use SES simple content.
+
+| Event                   | Fires from                              | Status   |
+| ----------------------- | --------------------------------------- | -------- |
+| `contact.created`       | `POST /api/v1/contact`                  | ✅ Wired |
+| `newsletter.subscribed` | `POST /api/v1/newsletter`               | ✅ Wired |
+| `donation.received`     | Webhook + `/api/v1/donations/confirm`   | ✅ Wired |
+| `student.sponsored`     | Sponsor payment webhook + admin sponsor | ✅ Wired |
+| `annadhana.booked`      | Booking webhook/confirm + admin entry   | ✅ Wired |
+
+Config env: `AWS_REGION`, `SES_FROM_EMAIL`, `ADMIN_EMAIL`, AWS credentials
+(see `.env.example`).
+
+## Frontend
+
+| Page / Component                                                     | Status  | Notes                                                                                                                                                         |
+| -------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/page.tsx` (home)                                                | ✅ Done | Server Component; banners + recent donor wall (`getPublicDonations`).                                                                                         |
+| `components/home/hero-banner`                                        | ✅ Done | Client carousel: image (`next/image`) + video, auto-rotate, links.                                                                                            |
+| `components/home/recent-donations`                                   | ✅ Done | Donor wall: masked name, category, amount, relative time.                                                                                                     |
+| `app/donate/page.tsx`                                                | ✅ Done | Donate page: form (amount/category/anonymous) + donor wall. Header links here.                                                                                |
+| `components/donate/donate-form`                                      | ✅ Done | Client donate form → `/api/v1/donations` (+ `/confirm`) via Razorpay.                                                                                         |
+| `app/about/page.tsx`                                                 | ✅ Done | About page + year-wise document downloads (annual reports, ITR).                                                                                              |
+| `app/blog/page.tsx`                                                  | ✅ Done | Public blog list + category chips; SSR first page, infinite-scroll rest.                                                                                      |
+| `components/blog/blog-list`                                          | ✅ Done | Client infinite scroll (IntersectionObserver) → `/api/v1/blog?page`; author byline.                                                                           |
+| `hooks/use-intersection-observer`                                    | ✅ Done | Reusable IntersectionObserver hook (sentinel ref + onIntersect).                                                                                              |
+| `hooks/use-infinite-list`                                            | ✅ Done | Generic infinite-scroll + debounced search (SSR seed, paginated `?page`/`?q`, dedupe by id); optional `refreshKey` refetches page 1 when list filters change. |
+| `components/dashboard/{students,contacts,newsletter,donations}-list` | ✅ Done | Client infinite-scroll admin tables → `/api/admin/*?page` (Edit/Delete/Void). Sticky Actions column (visible under horizontal scroll).                        |
+| `app/blog/[slug]/page.tsx`                                           | ✅ Done | Public post reader; author byline; Markdown content (GFM). 404 on draft.                                                                                      |
+| `app/dashboard/layout.tsx`                                           | ✅ Done | Admin dashboard shell: sidebar nav + content; session-guarded.                                                                                                |
+| `components/dashboard/dashboard-nav`                                 | ✅ Done | Client sidebar with active-link highlighting (admin links).                                                                                                   |
+| `app/dashboard/page.tsx`                                             | ✅ Done | Overview: live metric cards (counts + donation total) or member view.                                                                                         |
+| `app/dashboard/donations/page.tsx`                                   | ✅ Done | Admin: web+cash donations, infinite scroll + "Record cash donation" dialog.                                                                                   |
+| `components/dashboard/cash-donation-button`                          | ✅ Done | Client dialog → POST `/api/admin/donations` (offline entry; backdate).                                                                                        |
+| `components/dashboard/void-donation-button`                          | ✅ Done | Client dialog → POST `/api/admin/donations/[id]/void` (soft refund).                                                                                          |
+| `app/dashboard/students/page.tsx`                                    | ✅ Done | Admin: students, infinite scroll + New/Edit/Delete.                                                                                                           |
+| `app/dashboard/students/new` + `[id]/edit`                           | ✅ Done | Student create/edit form pages.                                                                                                                               |
+| `app/dashboard/contacts/page.tsx`                                    | ✅ Done | Admin: contacts, infinite scroll + Delete.                                                                                                                    |
+| `app/dashboard/newsletter/page.tsx`                                  | ✅ Done | Admin: subscribers, infinite scroll + Delete.                                                                                                                 |
+| `app/dashboard/categories/page.tsx`                                  | ✅ Done | Admin: categories table + New/Edit/Delete. Sticky Actions column.                                                                                             |
+| `app/dashboard/categories/new` + `[id]/edit`                         | ✅ Done | Category create/edit form pages.                                                                                                                              |
+| `app/dashboard/banners/page.tsx`                                     | ✅ Done | Admin: banners table + Delete (edit via Cloudinary: follow-up). Sticky Actions column.                                                                        |
+| `components/dashboard/delete-button`                                 | ✅ Done | Reusable confirm-delete → `DELETE /api/admin/<resource>/<id>` (optional label).                                                                               |
+| `components/dashboard/admin-blog-list`                               | ✅ Done | Admin posts table, infinite scroll (IntersectionObserver) → `/api/admin/blog?page`; Edit/Delete. Title truncated (`max-w-xs`); sticky Actions column.         |
+| `components/dashboard/category-form` + `student-form`                | ✅ Done | Client create/edit forms (POST/PATCH admin API).                                                                                                              |
+| `app/dashboard/blog/page.tsx`                                        | ✅ Done | Admin: SSR first page + infinite-scroll posts list; New/Edit/Delete.                                                                                          |
+| `app/dashboard/blog/new` + `[id]/edit`                               | ✅ Done | WordPress-style editor pages (title, category, content, cover, publish).                                                                                      |
+| `components/dashboard/blog-form`                                     | ✅ Done | Client editor; Cloudinary cover upload (or URL) → POST/PATCH blog API.                                                                                        |
+| `app/dashboard/documents/page.tsx`                                   | ✅ Done | Admin: upload (presigned S3) + list/delete documents. Admin-guarded.                                                                                          |
+| `components/documents/document-manager`                              | ✅ Done | Client: file picker → server upload (Cloudinary) → record; edit; delete.                                                                                      |
+| `components/documents/edit-document-button`                          | ✅ Done | Edit dialog → PATCH `/api/admin/documents/:id` (type/year/title/visibility).                                                                                  |
+| `app/students/page.tsx`                                              | ✅ Done | Public sponsor page: student cards with a Sponsor button.                                                                                                     |
+| `components/students/sponsor-button`                                 | ✅ Done | Razorpay checkout to sponsor a student (donor + amount).                                                                                                      |
+| `app/dashboard/annadhana/page.tsx`                                   | ✅ Done | Admin: bookings ledger, infinite scroll + search + occasion/status/past-upcoming filters; "Record booking" dialog; Campaigns link.                            |
+| `components/dashboard/annadhana-bookings-list`                       | ✅ Done | Client infinite-scroll table → `/api/admin/annadhana/bookings` (filters via `refreshKey`); Cancel/Delete row actions. Sticky Actions column.                  |
+| `components/dashboard/annadhana-booking-button`                      | ✅ Done | Client dialog → POST `/api/admin/annadhana/bookings` (offline entry; backdatable event date).                                                                 |
+| `components/dashboard/annadhana-cancel-button`                       | ✅ Done | Client dialog → PATCH `/api/admin/annadhana/bookings/[id]` (`status: "cancelled"`).                                                                           |
+| `app/dashboard/annadhana/campaigns/page.tsx`                         | ✅ Done | Admin: campaigns table (min/target/window/status) + New/Edit/Delete. Sticky Actions column.                                                                   |
+| `app/dashboard/annadhana/campaigns/new` + `[id]/edit`                | ✅ Done | Campaign create/edit form pages.                                                                                                                              |
+| `components/dashboard/annadhana-campaign-form`                       | ✅ Done | Client form; Cloudinary image upload → POST/PATCH campaigns API.                                                                                              |
+| `app/annadhana/page.tsx`                                             | ✅ Done | Public booking page: occasion form + ongoing-campaign cards with raised/target progress. Header nav links here.                                               |
+| `components/annadhana/booking-form`                                  | ✅ Done | Client form → `/api/v1/annadhana/bookings` (+ `/confirm`) via Razorpay; campaign minimums enforced.                                                           |
+| `app/annadhana/[slug]/page.tsx`                                      | ✅ Done | Public campaign feed: hero + progress + day-wise updates (media + daily breakfast sponsor lines). Campaign cards link here.                                   |
+| `components/annadhana/campaign-feed`                                 | ✅ Done | Client infinite-scroll feed → `/api/v1/annadhana/campaigns/[slug]/updates`; occasion phrasing per sponsor; image/video grid.                                  |
+| `app/dashboard/annadhana/updates/page.tsx`                           | ✅ Done | Admin: daily updates list (campaign filter, infinite scroll) + Post-a-day/Edit/Delete. Sticky Actions column.                                                 |
+| `app/dashboard/annadhana/updates/new` + `[id]/edit`                  | ✅ Done | Daily-update form pages (campaign fixed after posting).                                                                                                       |
+| `components/dashboard/annadhana-update-form`                         | ✅ Done | Client form: campaign, day, title/description, media gallery, visibility.                                                                                     |
+| `components/dashboard/media-gallery-field`                           | ✅ Done | Multi photo/video Cloudinary upload widget (functional-state onAdd/onRemove; URL fallback).                                                                   |
+
+`next.config.ts` allows `res.cloudinary.com` images.
+
+## Tooling
+
+| Tool        | Status  | Notes                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Prettier    | ✅ Done | Config `.prettierrc.json` (+ tailwind plugin). Scripts: `format`, `format:check`.                                                                                                                                                                                                                                                                                                                                      |
+| Husky       | ✅ Done | Git hooks in `.husky/`. `prepare` script installs on `pnpm install`.                                                                                                                                                                                                                                                                                                                                                   |
+| lint-staged | ✅ Done | Pre-commit runs `prettier --write` on staged JS/TS/JSON/CSS/MD files.                                                                                                                                                                                                                                                                                                                                                  |
+| Swagger     | ✅ Done | `swagger-ui-react` at `/api-docs`; spec in `src/lib/openapi.ts` served at `/api/docs`.                                                                                                                                                                                                                                                                                                                                 |
+| Secrets     | ✅ Done | Two modes. Pull-to-file: `pnpm env:pull` / `env:pull:prod` (`scripts/pull-env.mjs` → `.env.local` / `.env.production.local`, keys validated against `.env.example`). Runtime: `MAATRAM_SECRETS_STAGE=dev\|prod` (e.g. `pnpm dev:aws` / `start:aws`) loads `maatramtrust/{dev,prod}/app` from Secrets Manager in `next.config.ts` (`secrets-env.ts`) before compile — no env file needed; secret keys override `.env*`. |
+
+## Known Follow-ups / TODO
+
+- [x] Add email/mobile format validation to `contact` and `newsletter` routes. — done via `src/lib/validations.ts` (zod).
+- [x] Unused `error` binding in `catch` blocks. — now logged via `console.error`.
+- [ ] Requires `MONGODB_URI` env var to be set.
+- [ ] Banner asset cleanup needs server-only `CLOUDINARY_API_SECRET` (+ `CLOUDINARY_API_KEY`); do not use `NEXT_PUBLIC_*` for the secret.
+- [x] Wire `student.sponsored` email — done via `POST /api/admin/students/[id]/sponsor`.
+- [ ] SES sender identity must be verified; account out of the SES sandbox to email arbitrary recipients.
+- [ ] Browser uploads (blog covers, category/campaign images, daily-update media) use an unsigned Cloudinary preset shipped in the public bundle — anyone with it can upload to the account. Consider signed uploads (`signatureEndpoint`) or per-preset restrictions (folder, formats, size).
+- [ ] Assets uploaded via the widget but never saved (form abandoned / save failed) are orphaned in Cloudinary; a periodic cleanup of unreferenced assets would reclaim them.
