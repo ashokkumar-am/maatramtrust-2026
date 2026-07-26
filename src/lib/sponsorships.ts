@@ -6,6 +6,8 @@ export interface SponsorshipInput {
   studentId: string;
   studentName?: string;
   year: number;
+  /** Signed-in account (Auth.js user id) the sponsorship belongs to. */
+  userId?: string;
   donorName?: string;
   donorEmail?: string;
   donorPhone?: string;

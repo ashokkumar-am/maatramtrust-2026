@@ -2,10 +2,14 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import clientPromise from "@/lib/mongodb";
-import { DEFAULT_ROLE, isAdminEmail } from "@/lib/roles";
+import { isAdminEmail, normalizeRole } from "@/lib/roles";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: MongoDBAdapter(clientPromise),
+  // Sign-in methods. To add a social provider (Facebook, Twitter/X,
+  // Instagram, …) append it here with its env credentials and add its
+  // display label to `src/lib/user-providers.ts` — the adapter links each
+  // provider login to the user via the `accounts` collection.
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
@@ -18,13 +22,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/login",
   },
   callbacks: {
+    // Disabled users can't sign back in (disabling also revoked their
+    // sessions — see `setUserStatus`). First-time users have no record yet,
+    // so no status — they pass through.
+    signIn({ user }) {
+      return user.status !== "disabled";
+    },
     // With the database strategy, `user` is the record from MongoDB.
-    // Surface its role on the session: the `ADMIN_EMAILS` allowlist wins,
-    // otherwise fall back to the stored role (defaulting to "user").
+    // Surface its id (self-checks, giving lookups) and role: the
+    // `ADMIN_EMAILS` allowlist wins, otherwise the stored role (legacy
+    // "user" / missing → "donor").
     session({ session, user }) {
+      session.user.id = user.id;
       session.user.role = isAdminEmail(user.email)
         ? "admin"
-        : (user.role ?? DEFAULT_ROLE);
+        : normalizeRole(user.role);
       return session;
     },
   },

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { auth } from "@/auth";
 import { getPublicStudents } from "@/lib/student-view";
 import { SponsorButton } from "@/components/students/sponsor-button";
 import {
@@ -16,7 +17,8 @@ export const metadata = {
 };
 
 export default async function StudentsPage() {
-  const students = await getPublicStudents();
+  const [students, session] = await Promise.all([getPublicStudents(), auth()]);
+  const signedIn = Boolean(session?.user);
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
@@ -108,6 +110,7 @@ export default async function StudentsPage() {
                   </span>
                   <SponsorButton
                     funded={student.funded}
+                    signedIn={signedIn}
                     student={{
                       id: student.id,
                       name: student.name,

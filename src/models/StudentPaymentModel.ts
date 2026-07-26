@@ -29,7 +29,13 @@ const studentPaymentSchema = new Schema(
       index: true,
     },
 
-    // Donor details.
+    // Donor details. `userId` links the sponsorship to the signed-in account
+    // (Auth.js user id) so donors can see their own sponsored students.
+    userId: {
+      type: String,
+      trim: true,
+      index: true,
+    },
     donorName: {
       type: String,
       trim: true,

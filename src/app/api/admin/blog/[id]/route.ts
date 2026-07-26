@@ -2,6 +2,7 @@ import { after } from "next/server";
 import { itemHandlers } from "@/lib/crud-route";
 import { blogRepository } from "@/lib/resources";
 import { validateBlogCategoryRef } from "@/lib/blog";
+import { BLOG_MANAGER_ROLES } from "@/lib/roles";
 import { blogUpdateSchema } from "@/lib/validations";
 import { destroyCloudinaryAsset } from "@/lib/cloudinary";
 
@@ -21,6 +22,8 @@ export const { GET, PATCH, DELETE } = itemHandlers(
   blogRepository,
   blogUpdateSchema,
   {
+    // Editors manage the blog too.
+    roles: BLOG_MANAGER_ROLES,
     // Reject updates that point at a non-existent category.
     validate: validateBlogCategoryRef,
     // Delete the cover asset when the post is deleted.

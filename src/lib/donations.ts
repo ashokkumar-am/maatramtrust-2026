@@ -371,3 +371,75 @@ export async function getAdminDonations(
     at: doc.capturedAt ?? doc.createdAt,
   }));
 }
+
+/**
+ * The signed-in account a giving record belongs to. Matched by `userId` when
+ * the record was made while signed in, or by the account's email for records
+ * keyed only by address (e.g. admin cash entries for a known donor).
+ */
+export interface GivingOwner {
+  userId: string;
+  email?: string | null;
+}
+
+function ownerFilter(
+  owner: GivingOwner,
+  emailField: "email" | "donorEmail",
+): Record<string, unknown> {
+  const or: Record<string, unknown>[] = [{ userId: owner.userId }];
+  if (owner.email) or.push({ [emailField]: owner.email });
+  return { $or: or };
+}
+
+export { ownerFilter };
+
+/** A donor's own donation, serializable for the "My Giving" page. */
+export interface MyDonation {
+  id: string;
+  amount: number; // major currency units (rupees)
+  currency: string;
+  status: DonationStatus;
+  category?: string;
+  receiptNumber?: string;
+  at: string; // ISO date
+  /** Captured with a receipt — the donor can download the PDF. */
+  receiptAvailable: boolean;
+}
+
+/** The signed-in user's donations, newest first (capped at 100). */
+export async function getMyDonations(
+  owner: GivingOwner,
+): Promise<MyDonation[]> {
+  const col = await donations();
+  const docs = await col
+    .find(ownerFilter(owner, "email"))
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .toArray();
+
+  return docs.map((doc) => ({
+    id: doc._id,
+    amount: doc.amount / 100,
+    currency: doc.currency,
+    status: doc.status,
+    category: doc.categoryName,
+    receiptNumber: doc.receiptNumber,
+    at: (doc.capturedAt ?? doc.createdAt).toISOString(),
+    receiptAvailable:
+      doc.status === "captured" &&
+      Boolean(doc.paymentId) &&
+      Boolean(doc.receiptNumber),
+  }));
+}
+
+/**
+ * One donation, only if it belongs to `owner` — for self-service receipt
+ * download. Returns `null` for unknown ids and other users' donations alike.
+ */
+export async function getOwnedDonation(
+  id: string,
+  owner: GivingOwner,
+): Promise<DonationDoc | null> {
+  const col = await donations();
+  return col.findOne({ _id: id, ...ownerFilter(owner, "email") });
+}

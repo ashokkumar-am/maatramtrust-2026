@@ -1,8 +1,33 @@
-export const ROLES = ["user", "admin"] as const;
+/**
+ * RBAC roles. Every registered account is a `donor` by default (they can
+ * sponsor students and see their own giving); `editor` additionally manages
+ * the blog; `admin` has full dashboard access.
+ */
+export const ROLES = ["donor", "editor", "admin"] as const;
 
 export type UserRole = (typeof ROLES)[number];
 
-export const DEFAULT_ROLE: UserRole = "user";
+export const DEFAULT_ROLE: UserRole = "donor";
+
+/** Roles allowed to manage blog posts. */
+export const BLOG_MANAGER_ROLES: readonly UserRole[] = ["admin", "editor"];
+
+/**
+ * Map a stored role to a current one. Accounts created before the RBAC split
+ * may hold the legacy `"user"` role (or nothing) — both mean `donor` now.
+ */
+export function normalizeRole(value?: string | null): UserRole {
+  return (ROLES as readonly string[]).includes(value ?? "")
+    ? (value as UserRole)
+    : DEFAULT_ROLE;
+}
+
+export const USER_STATUSES = ["active", "disabled"] as const;
+
+export type UserStatus = (typeof USER_STATUSES)[number];
+
+/** Users without a stored status (e.g. created before the field existed). */
+export const DEFAULT_STATUS: UserStatus = "active";
 
 /**
  * Whether an email is in the admin allowlist (`ADMIN_EMAILS` env var,

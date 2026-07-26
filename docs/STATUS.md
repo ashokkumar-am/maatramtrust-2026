@@ -3,7 +3,7 @@
 Living document tracking implementation status of backend features. Update this
 whenever an endpoint, model, or lib helper is added or changed.
 
-_Last updated: 2026-07-21 (Annadhana daily campaign updates: day-wise media feed + daily breakfast sponsors)_
+_Last updated: 2026-07-26 (Admin user management: signed-in users list, role promote/demote, account disable with session revocation)_
 
 ## API Endpoints
 
@@ -64,6 +64,7 @@ searchable (`?q=` — case-insensitive across each resource's key fields).
 | `/api/admin/annadhana/bookings/[id]`    | GET, PATCH, DELETE          | Read/update one booking (details or `status: "cancelled"`); DELETE blocked (409) once money is received.                                                                  |
 | `/api/admin/annadhana/updates`          | GET (list), POST            | Daily campaign updates (`?campaign=` filter); POST posts a day's media (409 duplicate campaign+day).                                                                      |
 | `/api/admin/annadhana/updates/[id]`     | GET, PATCH, DELETE          | Edit/delete a daily update; removed/replaced Cloudinary media cleaned up.                                                                                                 |
+| `/api/admin/users`                      | GET (list)                  | Signed-in users (Auth.js `users` + linked `accounts` providers), `?q=` on name/email. Mutations go through Server Actions (`actions/users.ts`), not this route.           |
 
 ## Models (`src/models`)
 
@@ -83,11 +84,12 @@ searchable (`?q=` — case-insensitive across each resource's key fields).
 
 ## Server Actions (`src/app/actions`)
 
-| Action        | Status      | Notes                                                                                        |
-| ------------- | ----------- | -------------------------------------------------------------------------------------------- |
-| `students.ts` | ✅ Done     | `createStudentAction` / `updateStudentAction` — auth-gated, zod-validated, stamp audit user. |
-| `sponsor.ts`  | ✅ Done     | `createStudentSponsorshipOrder` — Razorpay order to sponsor a student (records pending).     |
-| `theme.ts`    | ✅ Existing | Persist theme preference cookie.                                                             |
+| Action        | Status      | Notes                                                                                                                |
+| ------------- | ----------- | -------------------------------------------------------------------------------------------------------------------- |
+| `students.ts` | ✅ Done     | `createStudentAction` / `updateStudentAction` — auth-gated, zod-validated, stamp audit user.                         |
+| `sponsor.ts`  | ✅ Done     | `createStudentSponsorshipOrder` — Razorpay order to sponsor a student (records pending).                             |
+| `theme.ts`    | ✅ Existing | Persist theme preference cookie.                                                                                     |
+| `users.ts`    | ✅ Done     | `setUserRoleAction` / `setUserStatusAction` — admin-gated; blocks self-changes and `ADMIN_EMAILS` allowlist targets. |
 
 ## Lib Helpers (`src/lib`)
 
@@ -117,7 +119,9 @@ searchable (`?q=` — case-insensitive across each resource's key fields).
 | `categories.ts`          | ✅ Done     | `validateCategoryParent()` — admin API parent-existence check.                                                                                                                                                                                                       |
 | `admin-metrics.ts`       | ✅ Done     | Dashboard overview counts + money raised: captured donations + received sponsorships + received annadhana bookings.                                                                                                                                                  |
 | `dashboard-auth.ts`      | ✅ Done     | `requireAdminPage()` guard for dashboard Server Components (redirects).                                                                                                                                                                                              |
-| `roles.ts`               | ✅ Done     | Role constants + `isAdminEmail()` (ADMIN_EMAILS allowlist → admin role in session).                                                                                                                                                                                  |
+| `roles.ts`               | ✅ Done     | Role + account-status constants; `isAdminEmail()` (ADMIN_EMAILS allowlist → admin role in session).                                                                                                                                                                  |
+| `users.ts`               | ✅ Done     | User management service (native driver over Auth.js collections): paginated list with providers join, role/status writes; disabling revokes DB sessions.                                                                                                             |
+| `user-providers.ts`      | ✅ Done     | Client-safe provider-id → label registry (Google today; Facebook/Twitter/Instagram-ready).                                                                                                                                                                           |
 | `email/`                 | ✅ Done     | Generic Amazon SES triggers. `triggerEmail(event, payload)`; raw-MIME attachments.                                                                                                                                                                                   |
 
 ## Email (Amazon SES)
@@ -194,6 +198,8 @@ Config env: `AWS_REGION`, `SES_FROM_EMAIL`, `ADMIN_EMAIL`, AWS credentials
 | `app/dashboard/annadhana/updates/new` + `[id]/edit`                  | ✅ Done | Daily-update form pages (campaign fixed after posting).                                                                                                       |
 | `components/dashboard/annadhana-update-form`                         | ✅ Done | Client form: campaign, day, title/description, media gallery, visibility.                                                                                     |
 | `components/dashboard/media-gallery-field`                           | ✅ Done | Multi photo/video Cloudinary upload widget (functional-state onAdd/onRemove; URL fallback).                                                                   |
+| `app/dashboard/users/page.tsx`                                       | ✅ Done | Admin: signed-in users, infinite scroll + search; role/status via Server Actions.                                                                             |
+| `components/dashboard/users-list` + `user-actions`                   | ✅ Done | Client table (avatar, provider badges, role/status) + row menu with confirm dialogs; self and env-admin rows locked.                                          |
 
 `next.config.ts` allows `res.cloudinary.com` images.
 

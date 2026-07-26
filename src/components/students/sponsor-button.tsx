@@ -25,12 +25,18 @@ import type { RazorpaySuccessResponse } from "@/types/razorpay";
 
 type SponsorStudent = { id: string; name: string; amount: number };
 
+/** Login page URL that returns the user to the sponsor listing afterwards. */
+const SIGN_IN_URL = "/login?callbackUrl=%2Fstudents";
+
 export function SponsorButton({
   student,
   funded = false,
+  signedIn = false,
 }: {
   student: SponsorStudent;
   funded?: boolean;
+  /** Only registered users can sponsor; guests are sent to sign in. */
+  signedIn?: boolean;
 }) {
   const { isReady, load } = useRazorpay();
   const router = useRouter();
@@ -67,6 +73,11 @@ export function SponsorButton({
         donorPhone: phone.trim() || undefined,
       });
       if (!order.ok) {
+        if (order.requiresSignIn) {
+          toast.info(order.error);
+          router.push(SIGN_IN_URL);
+          return;
+        }
         toast.error(order.error);
         return;
       }
@@ -108,6 +119,15 @@ export function SponsorButton({
       <Button size="sm" variant="secondary" disabled>
         <CheckCircle2 className="size-4" />
         Sponsored
+      </Button>
+    );
+  }
+
+  if (!signedIn) {
+    return (
+      <Button size="sm" onClick={() => router.push(SIGN_IN_URL)}>
+        <HeartHandshake className="size-4" />
+        Sign in to sponsor
       </Button>
     );
   }

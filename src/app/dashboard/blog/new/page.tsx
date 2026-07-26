@@ -1,6 +1,7 @@
 import connectMongoDB from "@/lib/mongoose";
 import Category from "@/models/CategoryModel";
-import { requireAdminPage } from "@/lib/dashboard-auth";
+import { requireRolePage } from "@/lib/dashboard-auth";
+import { BLOG_MANAGER_ROLES } from "@/lib/roles";
 import { BlogForm } from "@/components/dashboard/blog-form";
 
 export const metadata = { title: "New post · Maatram Admin" };
@@ -11,7 +12,7 @@ interface CategoryDoc {
 }
 
 export default async function NewBlogPostPage() {
-  await requireAdminPage("/dashboard/blog/new");
+  await requireRolePage(BLOG_MANAGER_ROLES, "/dashboard/blog/new");
   await connectMongoDB();
 
   // Only blog-typed categories are assignable — this matches the public /blog

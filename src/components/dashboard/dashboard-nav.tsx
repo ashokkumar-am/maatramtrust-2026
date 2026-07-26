@@ -5,17 +5,20 @@ import { usePathname } from "next/navigation";
 import {
   FileText,
   HandCoins,
+  HeartHandshake,
   Images,
   Inbox,
   LayoutDashboard,
   Mail,
   Newspaper,
   Tags,
+  UserCog,
   Users,
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { UserRole } from "@/lib/roles";
 
 interface NavLink {
   href: string;
@@ -31,6 +34,19 @@ const OVERVIEW: NavLink = {
   exact: true,
 };
 
+/** Every signed-in user's own giving (donations, sponsorships, annadhana). */
+const MY_GIVING: NavLink = {
+  href: "/dashboard/my-giving",
+  label: "My Giving",
+  icon: HeartHandshake,
+};
+
+const BLOG: NavLink = {
+  href: "/dashboard/blog",
+  label: "Blog",
+  icon: Newspaper,
+};
+
 const ADMIN_LINKS: NavLink[] = [
   OVERVIEW,
   { href: "/dashboard/donations", label: "Donations", icon: HandCoins },
@@ -39,14 +55,22 @@ const ADMIN_LINKS: NavLink[] = [
   { href: "/dashboard/contacts", label: "Contacts", icon: Inbox },
   { href: "/dashboard/newsletter", label: "Newsletter", icon: Mail },
   { href: "/dashboard/categories", label: "Categories", icon: Tags },
-  { href: "/dashboard/blog", label: "Blog", icon: Newspaper },
+  BLOG,
   { href: "/dashboard/banners", label: "Banners", icon: Images },
   { href: "/dashboard/documents", label: "Documents", icon: FileText },
+  { href: "/dashboard/users", label: "Users", icon: UserCog },
+  MY_GIVING,
 ];
 
-export function DashboardNav({ isAdmin }: { isAdmin: boolean }) {
+const LINKS_BY_ROLE: Record<UserRole, NavLink[]> = {
+  admin: ADMIN_LINKS,
+  editor: [OVERVIEW, BLOG, MY_GIVING],
+  donor: [OVERVIEW, MY_GIVING],
+};
+
+export function DashboardNav({ role }: { role: UserRole }) {
   const pathname = usePathname();
-  const links = isAdmin ? ADMIN_LINKS : [OVERVIEW];
+  const links = LINKS_BY_ROLE[role] ?? LINKS_BY_ROLE.donor;
 
   return (
     <nav className="flex shrink-0 gap-1 overflow-x-auto pb-2 sm:w-52 sm:flex-col sm:overflow-visible sm:pb-0">

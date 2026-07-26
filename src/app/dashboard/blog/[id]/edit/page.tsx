@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 import connectMongoDB from "@/lib/mongoose";
 import Category from "@/models/CategoryModel";
 import BlogPost from "@/models/BlogModel";
-import { requireAdminPage } from "@/lib/dashboard-auth";
+import { requireRolePage } from "@/lib/dashboard-auth";
+import { BLOG_MANAGER_ROLES } from "@/lib/roles";
 import { BlogForm, type BlogValues } from "@/components/dashboard/blog-form";
 
 export const metadata = { title: "Edit post · Maatram Admin" };
@@ -32,7 +33,7 @@ export default async function EditBlogPostPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requireAdminPage(`/dashboard/blog/${id}/edit`);
+  await requireRolePage(BLOG_MANAGER_ROLES, `/dashboard/blog/${id}/edit`);
 
   if (!mongoose.isValidObjectId(id)) notFound();
   await connectMongoDB();

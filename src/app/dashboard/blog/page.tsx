@@ -3,7 +3,8 @@ import { Plus } from "lucide-react";
 import connectMongoDB from "@/lib/mongoose";
 import BlogPost from "@/models/BlogModel";
 import Category from "@/models/CategoryModel";
-import { requireAdminPage } from "@/lib/dashboard-auth";
+import { requireRolePage } from "@/lib/dashboard-auth";
+import { BLOG_MANAGER_ROLES } from "@/lib/roles";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -29,7 +30,7 @@ interface CategoryDoc {
 }
 
 export default async function AdminBlogPage() {
-  await requireAdminPage("/dashboard/blog");
+  await requireRolePage(BLOG_MANAGER_ROLES, "/dashboard/blog");
   await connectMongoDB();
 
   const [docs, total, cats] = await Promise.all([

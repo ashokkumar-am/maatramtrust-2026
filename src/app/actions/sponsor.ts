@@ -25,16 +25,27 @@ export type SponsorshipOrderResult =
       amount: number;
       currency: string;
     }
-  | { ok: false; error: string };
+  | { ok: false; error: string; requiresSignIn?: boolean };
 
 /**
- * Start a Razorpay order to sponsor a specific student. Records a `pending`
- * sponsorship (donor details + year, against the student); the webhook flips it
- * to `received` on capture. The amount is server-authoritative (paise).
+ * Start a Razorpay order to sponsor a specific student. Only registered
+ * (signed-in) users can sponsor — the sponsorship is recorded against their
+ * account so it shows up under "My Giving". Records a `pending` sponsorship
+ * (donor details + year, against the student); the webhook flips it to
+ * `received` on capture. The amount is server-authoritative (paise).
  */
 export async function createStudentSponsorshipOrder(
   input: unknown,
 ): Promise<SponsorshipOrderResult> {
+  const actor = await getAuditUser();
+  if (!actor) {
+    return {
+      ok: false,
+      error: "Please sign in to sponsor a student.",
+      requiresSignIn: true,
+    };
+  }
+
   const parsed = sponsorshipOrderSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: "Please provide a student and a valid amount." };
@@ -54,7 +65,9 @@ export async function createStudentSponsorshipOrder(
   }
 
   const year = parsed.data.year ?? new Date().getFullYear();
-  const actor = await getAuditUser();
+  // Donor identity falls back to the signed-in account.
+  const donorName = parsed.data.donorName ?? actor.name;
+  const donorEmail = parsed.data.donorEmail ?? actor.email;
 
   try {
     const order = await razorpay.orders.create({
@@ -67,7 +80,7 @@ export async function createStudentSponsorshipOrder(
         purpose: "sponsorship",
         studentId: parsed.data.studentId,
         year: String(year),
-        donorEmail: parsed.data.donorEmail ?? "",
+        donorEmail: donorEmail ?? "",
       },
     });
 
@@ -76,14 +89,15 @@ export async function createStudentSponsorshipOrder(
         studentId: parsed.data.studentId,
         studentName: student.name,
         year,
-        donorName: parsed.data.donorName,
-        donorEmail: parsed.data.donorEmail,
+        userId: actor.id,
+        donorName,
+        donorEmail,
         donorPhone: parsed.data.donorPhone,
         amount: parsed.data.amount,
         currency: DONATION_CURRENCY,
         orderId: order.id,
       },
-      actor ?? undefined,
+      actor,
     );
 
     return {

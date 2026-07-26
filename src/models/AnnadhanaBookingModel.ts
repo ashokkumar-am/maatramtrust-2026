@@ -74,6 +74,13 @@ const annadhanaBookingSchema = new Schema(
       type: String,
       trim: true,
     },
+    // Links the booking to the signed-in account (Auth.js user id) so donors
+    // can see their own Annadhana Sevai bookings.
+    userId: {
+      type: String,
+      trim: true,
+      index: true,
+    },
 
     // Pledged amount (major currency units) and amount actually received.
     amount: {

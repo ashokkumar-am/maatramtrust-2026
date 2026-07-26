@@ -25,6 +25,8 @@ export interface AnnadhanaBookingInput {
   occasionDetail?: string;
   honoreeName?: string;
   eventDate: Date;
+  /** Signed-in account (Auth.js user id) the booking belongs to. */
+  userId?: string;
   donorName?: string;
   donorEmail?: string;
   donorPhone?: string;

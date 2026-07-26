@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import type { ZodError, ZodType } from "zod";
-import { requireAdmin } from "@/lib/admin-auth";
+import { requireRole } from "@/lib/admin-auth";
 import type { Doc, Repository } from "@/lib/repository";
+import type { UserRole } from "@/lib/roles";
+
+/** Handlers are admin-only unless a resource opts more roles in. */
+const DEFAULT_ROLES: readonly UserRole[] = ["admin"];
 
 type ItemContext = { params: Promise<{ id: string }> };
 
@@ -49,6 +53,8 @@ export type InputValidator = (data: Doc) => Promise<string | null>;
 
 interface CollectionOptions {
   validate?: InputValidator;
+  /** Roles allowed on these handlers (default: admin only). */
+  roles?: readonly UserRole[];
 }
 
 const badRequest = (message: string) =>
@@ -56,16 +62,19 @@ const badRequest = (message: string) =>
 
 /**
  * Build `GET` (paginated list) and `POST` (create) handlers for a collection
- * endpoint. Admin-gated and validated against `createSchema`; `options.validate`
- * adds an async semantic check (e.g. referenced-id existence).
+ * endpoint. Role-gated (admin by default) and validated against
+ * `createSchema`; `options.validate` adds an async semantic check (e.g.
+ * referenced-id existence).
  */
 export function collectionHandlers(
   repo: Repository,
   createSchema: ZodType,
   options: CollectionOptions = {},
 ) {
+  const roles = options.roles ?? DEFAULT_ROLES;
+
   async function GET(request: Request) {
-    const auth = await requireAdmin();
+    const auth = await requireRole(roles);
     if (!auth.ok) return auth.response;
 
     const { searchParams } = new URL(request.url);
@@ -73,7 +82,7 @@ export function collectionHandlers(
   }
 
   async function POST(request: Request) {
-    const auth = await requireAdmin();
+    const auth = await requireRole(roles);
     if (!auth.ok) return auth.response;
 
     const json = await readJson(request);
@@ -120,19 +129,24 @@ interface ItemHandlerHooks {
   /** Async semantic check on the parsed update payload; a returned message is a
    * `400`. */
   validate?: InputValidator;
+  /** Roles allowed on these handlers (default: admin only). */
+  roles?: readonly UserRole[];
 }
 
 /**
  * Build `GET` (read one), `PATCH` (partial update) and `DELETE` handlers for a
- * single-item endpoint. Admin-gated and validated against `updateSchema`.
+ * single-item endpoint. Role-gated (admin by default) and validated against
+ * `updateSchema`.
  */
 export function itemHandlers(
   repo: Repository,
   updateSchema: ZodType,
   hooks: ItemHandlerHooks = {},
 ) {
+  const roles = hooks.roles ?? DEFAULT_ROLES;
+
   async function GET(_request: Request, ctx: ItemContext) {
-    const auth = await requireAdmin();
+    const auth = await requireRole(roles);
     if (!auth.ok) return auth.response;
 
     const { id } = await ctx.params;
@@ -141,7 +155,7 @@ export function itemHandlers(
   }
 
   async function PATCH(request: Request, ctx: ItemContext) {
-    const auth = await requireAdmin();
+    const auth = await requireRole(roles);
     if (!auth.ok) return auth.response;
 
     const json = await readJson(request);
@@ -176,7 +190,7 @@ export function itemHandlers(
   }
 
   async function DELETE(_request: Request, ctx: ItemContext) {
-    const auth = await requireAdmin();
+    const auth = await requireRole(roles);
     if (!auth.ok) return auth.response;
 
     const { id } = await ctx.params;

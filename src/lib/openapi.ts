@@ -480,6 +480,22 @@ export const openApiSpec = {
         },
       },
     },
+    "/api/admin/users": {
+      get: {
+        tags: ["Admin · Users"],
+        summary:
+          "List signed-in users (providers, role, status); ?q= searches name/email",
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          ...paginationParams,
+          { name: "q", in: "query", schema: { type: "string" } },
+        ],
+        responses: {
+          "200": objectResponse("Paginated users with total"),
+          ...adminErrors,
+        },
+      },
+    },
     "/api/admin/donations": {
       get: {
         tags: ["Admin · Donations"],

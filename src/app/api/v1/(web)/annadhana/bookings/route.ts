@@ -107,6 +107,7 @@ export async function POST(request: Request) {
       {
         ...data,
         campaignTitle,
+        userId: session?.user?.id,
         donorName,
         donorEmail,
         currency: DONATION_CURRENCY,
