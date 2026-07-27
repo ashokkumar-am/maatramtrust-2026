@@ -9,8 +9,9 @@ frontend:
         # Flat node_modules for this build only: Next loads mongodb/mongoose
         # via native require at runtime (serverExternalPackages), and pnpm's
         # symlink layout leaves their deps (bson, kareem) out of the deployed
-        # SSR bundle.
-        - echo "node-linker=hoisted" >> .npmrc
+        # SSR bundle. pnpm 11 ignores node-linker in .npmrc — the setting
+        # must live in pnpm-workspace.yaml.
+        - echo "nodeLinker: hoisted" >> pnpm-workspace.yaml
         - pnpm install --frozen-lockfile
     build:
       commands:
