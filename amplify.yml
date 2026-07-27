@@ -1,0 +1,27 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # The Amplify build image ships Node but not pnpm; corepack activates
+        # the version pinned in package.json's "packageManager" field.
+        - corepack enable
+        - pnpm install --frozen-lockfile
+    build:
+      commands:
+        # Pull the app env from Secrets Manager (maatramtrust/prod/app).
+        # Requires the Amplify service role to allow secretsmanager:GetSecretValue
+        # and AWS_REGION=ap-south-1. Writes .env.production.local, which
+        # `next build` reads (NEXT_PUBLIC_* inlining) — copied to
+        # .env.production so the SSR compute picks it up at runtime too.
+        - node scripts/pull-env.mjs prod
+        - cp .env.production.local .env.production
+        - pnpm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - "**/*"
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*
