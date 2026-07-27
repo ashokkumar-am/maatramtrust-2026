@@ -1,17 +1,18 @@
 import Link from "next/link";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { getPublishedPostBySlug } from "@/lib/blog";
+import { categoryPath, postPath } from "@/lib/blog-paths";
 import { Badge } from "@/components/ui/badge";
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ category: string; slug: string }>;
 }) {
   const { slug } = await params;
   const post = await getPublishedPostBySlug(slug);
@@ -25,11 +26,15 @@ export async function generateMetadata({
 export default async function BlogPostPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ category: string; slug: string }>;
 }) {
-  const { slug } = await params;
+  const { category, slug } = await params;
   const post = await getPublishedPostBySlug(slug);
   if (!post) notFound();
+
+  // Enforce the canonical URL so a post lives at exactly one path.
+  const canonical = postPath(post);
+  if (canonical !== `/blog/${category}/${slug}`) redirect(canonical);
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
@@ -43,7 +48,7 @@ export default async function BlogPostPage({
 
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
         {post.category && (
-          <Link href={`/blog?category=${post.category.slug}`}>
+          <Link href={categoryPath(post.category.slug)}>
             <Badge variant="secondary">{post.category.name}</Badge>
           </Link>
         )}

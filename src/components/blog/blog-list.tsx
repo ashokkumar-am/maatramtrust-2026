@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useInfiniteList } from "@/hooks/use-infinite-list";
+import { postPath } from "@/lib/blog-paths";
 
 export interface PostItem {
   id: string;
@@ -66,7 +67,7 @@ export function BlogList({
           {items.map((post) => (
             <Link
               key={post.id}
-              href={`/blog/${post.slug}`}
+              href={postPath(post)}
               className="group hover:border-foreground/20 flex flex-col overflow-hidden rounded-lg border transition-colors"
             >
               <div className="bg-muted relative aspect-video w-full">

@@ -10,6 +10,20 @@ export interface PostCategory {
   slug: string;
 }
 
+/**
+ * Active blog categories, in display order. Wrapped in React `cache()` so the
+ * header dropdown and the blog pages share one query per request.
+ */
+export const getBlogCategories = cache(async (): Promise<PostCategory[]> => {
+  await connectMongoDB();
+  const docs = await Category.find({ isActive: true, type: "blog" })
+    .sort({ order: 1, name: 1 })
+    .select("name slug")
+    .lean<{ name: string; slug: string }[]>()
+    .exec();
+  return docs.map((doc) => ({ name: doc.name, slug: doc.slug }));
+});
+
 export interface BlogListItem {
   id: string;
   title: string;
