@@ -32,7 +32,13 @@ async function connectMongoDB(): Promise<typeof mongoose> {
   }
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(uri, { bufferCommands: false });
+    cached.promise = mongoose.connect(uri, {
+      bufferCommands: false,
+      // Match src/lib/mongodb.ts: drop idle sockets before Atlas does and
+      // fail fast when the cluster is unreachable.
+      maxIdleTimeMS: 60_000,
+      serverSelectionTimeoutMS: 10_000,
+    });
   }
 
   try {

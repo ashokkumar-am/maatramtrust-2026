@@ -32,7 +32,9 @@ async function deepChecks(): Promise<Record<string, string>> {
   const checks: Record<string, string> = {};
   try {
     const { default: clientPromise } = await import("@/lib/mongodb");
-    await clientPromise;
+    const client = await clientPromise;
+    // The client connects lazily, so awaiting it proves nothing — ping.
+    await client.db().command({ ping: 1 });
     checks.mongoClient = "ok";
   } catch (error) {
     checks.mongoClient = describeError(error);
