@@ -6,6 +6,10 @@ import { isAdminEmail, normalizeRole } from "@/lib/roles";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: MongoDBAdapter(clientPromise),
+  // The app always runs behind a trusted reverse proxy (Amplify/CloudFront
+  // in prod, `next dev` locally), so the Host header is safe to trust.
+  // Without this, Auth.js v5 throws UntrustedHost on every request.
+  trustHost: true,
   // Sign-in methods. To add a social provider (Facebook, Twitter/X,
   // Instagram, …) append it here with its env credentials and add its
   // display label to `src/lib/user-providers.ts` — the adapter links each
