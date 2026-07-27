@@ -11,12 +11,22 @@ export interface PostCategory {
 }
 
 /**
- * Active blog categories, in display order. Wrapped in React `cache()` so the
- * header dropdown and the blog pages share one query per request.
+ * Active blog categories that have at least one published post, in display
+ * order — empty categories would only lead to empty listings. Wrapped in
+ * React `cache()` so the header dropdown and the blog pages share one query
+ * per request.
  */
 export const getBlogCategories = cache(async (): Promise<PostCategory[]> => {
   await connectMongoDB();
-  const docs = await Category.find({ isActive: true, type: "blog" })
+  const usedIds = await BlogPost.distinct("category", {
+    status: "published",
+    category: { $ne: null },
+  });
+  const docs = await Category.find({
+    _id: { $in: usedIds },
+    isActive: true,
+    type: "blog",
+  })
     .sort({ order: 1, name: 1 })
     .select("name slug")
     .lean<{ name: string; slug: string }[]>()
