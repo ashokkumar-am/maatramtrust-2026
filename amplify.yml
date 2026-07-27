@@ -11,7 +11,7 @@ frontend:
         # symlink layout leaves their deps (bson, kareem) out of the deployed
         # SSR bundle. pnpm 11 ignores node-linker in .npmrc — the setting
         # must live in pnpm-workspace.yaml.
-        - echo "nodeLinker: hoisted" >> pnpm-workspace.yaml
+        - 'echo "nodeLinker: hoisted" >> pnpm-workspace.yaml'
         - pnpm install --frozen-lockfile
     build:
       commands:
