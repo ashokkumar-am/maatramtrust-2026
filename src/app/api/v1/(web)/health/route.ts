@@ -1,6 +1,4 @@
 import { NextResponse, type NextRequest } from "next/server";
-import connectMongoDB from "@/lib/mongoose";
-import { auth } from "@/auth";
 
 // Config keys the app needs at runtime (values are never returned — presence
 // booleans only, so this stays safe to expose publicly).
@@ -24,16 +22,30 @@ function describeError(error: unknown): string {
   return String(error).slice(0, 300);
 }
 
-/** Exercise the app's critical dependencies and report failures by name. */
+/**
+ * Exercise the app's critical dependencies and report failures by name.
+ * Dynamic imports on purpose: a module that throws while loading (the
+ * current production failure mode) rejects here instead of crashing the
+ * whole route before the handler runs.
+ */
 async function deepChecks(): Promise<Record<string, string>> {
   const checks: Record<string, string> = {};
   try {
-    await connectMongoDB();
-    checks.mongodb = "ok";
+    const { default: clientPromise } = await import("@/lib/mongodb");
+    await clientPromise;
+    checks.mongoClient = "ok";
   } catch (error) {
-    checks.mongodb = describeError(error);
+    checks.mongoClient = describeError(error);
   }
   try {
+    const { default: connectMongoDB } = await import("@/lib/mongoose");
+    await connectMongoDB();
+    checks.mongoose = "ok";
+  } catch (error) {
+    checks.mongoose = describeError(error);
+  }
+  try {
+    const { auth } = await import("@/auth");
     await auth();
     checks.auth = "ok";
   } catch (error) {
