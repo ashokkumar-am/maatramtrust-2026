@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import {
   FileText,
   HandCoins,
@@ -73,7 +74,7 @@ export function DashboardNav({ role }: { role: UserRole }) {
   const links = LINKS_BY_ROLE[role] ?? LINKS_BY_ROLE.donor;
 
   return (
-    <nav className="flex shrink-0 gap-1 overflow-x-auto pb-2 sm:w-52 sm:flex-col sm:overflow-visible sm:pb-0">
+    <nav className="flex shrink-0 gap-1 overflow-x-auto pb-2 sm:sticky sm:top-6 sm:w-52 sm:flex-col sm:self-start sm:overflow-visible sm:pb-0">
       {links.map(({ href, label, icon: Icon, exact }) => {
         const active = exact ? pathname === href : pathname.startsWith(href);
         return (
@@ -82,14 +83,23 @@ export function DashboardNav({ role }: { role: UserRole }) {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center gap-2 rounded-md px-3 py-2 text-sm whitespace-nowrap transition-colors",
+              "relative flex items-center gap-2 rounded-md px-3 py-2 text-sm whitespace-nowrap transition-colors",
               active
-                ? "bg-muted text-foreground font-medium"
+                ? "text-foreground font-medium"
                 : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
             )}
           >
-            <Icon className="size-4 shrink-0" />
-            {label}
+            {active && (
+              // Shared-layout pill: springs from the previous section's link
+              // to the newly active one on route change.
+              <motion.span
+                layoutId="dashboard-nav-active"
+                className="bg-muted absolute inset-0 rounded-md"
+                transition={{ type: "spring", stiffness: 400, damping: 32 }}
+              />
+            )}
+            <Icon className="relative size-4 shrink-0" />
+            <span className="relative">{label}</span>
           </Link>
         );
       })}

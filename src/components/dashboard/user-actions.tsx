@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import {
   Ban,
   CircleCheck,
+  HeartHandshake,
   MoreHorizontal,
+  Newspaper,
   Shield,
-  ShieldOff,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -15,7 +17,7 @@ import {
   setUserStatusAction,
   type UserActionResult,
 } from "@/app/actions/users";
-import type { UserRole, UserStatus } from "@/lib/roles";
+import { ROLES, type UserRole, type UserStatus } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -43,20 +45,36 @@ interface ChangeCopy {
   destructive?: boolean;
 }
 
+/** What each role means, shown in the menu and the confirmation dialog. */
+const ROLE_META: Record<
+  UserRole,
+  { label: string; icon: LucideIcon; grants: string }
+> = {
+  donor: {
+    label: "Donor",
+    icon: HeartHandshake,
+    grants: "regular access: their own donations, sponsorships and bookings",
+  },
+  editor: {
+    label: "Editor",
+    icon: Newspaper,
+    grants: "blog management on top of regular donor access",
+  },
+  admin: {
+    label: "Admin",
+    icon: Shield,
+    grants: "full dashboard access, including user management",
+  },
+};
+
 function copyFor(change: PendingChange, who: string): ChangeCopy {
   if (change.kind === "role") {
-    return change.value === "admin"
-      ? {
-          title: "Make admin?",
-          description: `${who} will get full access to this dashboard, including user management.`,
-          cta: "Make admin",
-        }
-      : {
-          title: "Remove admin access?",
-          description: `${who} will become a regular user and lose access to admin pages.`,
-          cta: "Remove admin",
-          destructive: true,
-        };
+    const meta = ROLE_META[change.value];
+    return {
+      title: `Change role to ${meta.label.toLowerCase()}?`,
+      description: `${who} will get ${meta.grants}.`,
+      cta: `Make ${meta.label.toLowerCase()}`,
+    };
   }
   return change.value === "disabled"
     ? {
@@ -123,21 +141,18 @@ export function UserActions({
           }
         />
         <DropdownMenuContent align="end">
-          {user.role === "admin" ? (
-            <DropdownMenuItem
-              onClick={() => setChange({ kind: "role", value: "user" })}
-            >
-              <ShieldOff className="size-4" />
-              Remove admin
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem
-              onClick={() => setChange({ kind: "role", value: "admin" })}
-            >
-              <Shield className="size-4" />
-              Make admin
-            </DropdownMenuItem>
-          )}
+          {ROLES.filter((role) => role !== user.role).map((role) => {
+            const { label, icon: Icon } = ROLE_META[role];
+            return (
+              <DropdownMenuItem
+                key={role}
+                onClick={() => setChange({ kind: "role", value: role })}
+              >
+                <Icon className="size-4" />
+                Make {label.toLowerCase()}
+              </DropdownMenuItem>
+            );
+          })}
           {disabled ? (
             <DropdownMenuItem
               onClick={() => setChange({ kind: "status", value: "active" })}

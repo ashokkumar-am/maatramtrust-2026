@@ -5,6 +5,7 @@ import {
   ContactsList,
   type ContactRow,
 } from "@/components/dashboard/contacts-list";
+import { ContactDialog } from "@/components/dashboard/contact-dialog";
 
 const PAGE_SIZE = 20;
 
@@ -44,11 +45,14 @@ export default async function AdminContactsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Contacts</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          {total} submissions.
-        </p>
+      <header className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Contacts</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {total} submissions.
+          </p>
+        </div>
+        <ContactDialog />
       </header>
 
       <ContactsList initialItems={initialItems} pageSize={PAGE_SIZE} />

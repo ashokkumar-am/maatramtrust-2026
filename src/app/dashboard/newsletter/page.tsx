@@ -5,6 +5,7 @@ import {
   NewsletterList,
   type SubscriberRow,
 } from "@/components/dashboard/newsletter-list";
+import { NewsletterDialog } from "@/components/dashboard/newsletter-dialog";
 
 const PAGE_SIZE = 20;
 
@@ -40,11 +41,14 @@ export default async function AdminNewsletterPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Newsletter</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          {total} subscribers.
-        </p>
+      <header className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Newsletter</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {total} subscribers.
+          </p>
+        </div>
+        <NewsletterDialog />
       </header>
 
       <NewsletterList initialItems={initialItems} pageSize={PAGE_SIZE} />

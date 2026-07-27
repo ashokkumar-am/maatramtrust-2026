@@ -1,6 +1,8 @@
 import connectMongoDB from "@/lib/mongoose";
-import Student from "@/models/StudentModel";
+import Student, { type STUDENT_TYPES } from "@/models/StudentModel";
 import StudentPayment from "@/models/StudentPaymentModel";
+
+export type StudentType = (typeof STUDENT_TYPES)[number];
 
 /** Public, serializable student shape (safe for Client Components). */
 export interface StudentView {
@@ -8,7 +10,7 @@ export interface StudentView {
   student_id: string;
   name: string;
   photo?: string;
-  student_type: "School" | "College";
+  student_type: StudentType;
   reason?: string;
   amount: number;
   school_name?: string;
@@ -35,7 +37,7 @@ interface StudentDoc {
   student_id: string;
   name: string;
   photo?: string;
-  student_type: "School" | "College";
+  student_type: StudentType;
   reason?: string;
   amount?: number;
   school_name?: string;

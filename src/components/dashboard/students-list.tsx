@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Pencil } from "lucide-react";
+import { HandHeart, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -111,7 +111,14 @@ export function StudentsList({
                   <TableCell className="font-mono text-xs">
                     {row.student_id}
                   </TableCell>
-                  <TableCell className="font-medium">{row.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/dashboard/students/${row.id}`}
+                      className="hover:underline"
+                    >
+                      {row.name}
+                    </Link>
+                  </TableCell>
                   <TableCell>
                     <Badge variant="secondary">{row.student_type}</Badge>
                   </TableCell>
@@ -126,6 +133,15 @@ export function StudentsList({
                   </TableCell>
                   <TableCell className="bg-background sticky right-0">
                     <div className="flex items-center justify-end gap-2">
+                      <Link
+                        href={`/dashboard/students/${row.id}`}
+                        className={cn(
+                          buttonVariants({ variant: "outline", size: "sm" }),
+                        )}
+                      >
+                        <HandHeart className="size-3" />
+                        Donors
+                      </Link>
                       <Link
                         href={`/dashboard/students/${row.id}/edit`}
                         className={cn(

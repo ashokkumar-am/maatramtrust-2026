@@ -139,7 +139,13 @@ export function UsersList({
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={row.role === "admin" ? "default" : "outline"}
+                      variant={
+                        row.role === "admin"
+                          ? "default"
+                          : row.role === "editor"
+                            ? "secondary"
+                            : "outline"
+                      }
                       title={
                         row.isEnvAdmin
                           ? "Granted via the ADMIN_EMAILS allowlist"

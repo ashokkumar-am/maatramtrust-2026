@@ -31,7 +31,7 @@ export default async function EditStudentPage({
   await connectMongoDB();
   const doc = await Student.findById(id)
     .select(
-      "student_id name student_type amount originalAmount phonenumber gender blood_group reason marks school_name grade_level college_name department semester parenting_status photo isDonate isStatus",
+      "student_id name student_type amount originalAmount phonenumber gender blood_group reason marks school_name grade_level college_name department semester parenting_status photo aadhaar_number aadhaar_image pan_number pan_image mark_statement_image isDonate isStatus",
     )
     .lean<StudentDoc>()
     .exec();

@@ -8,6 +8,7 @@ import type {
   ANNADHANA_OCCASIONS,
 } from "@/models/AnnadhanaBookingModel";
 import type { AuditUser } from "@/lib/audit";
+import { ownerFilter, type GivingOwner } from "@/lib/giving";
 import type { Doc, ListResult } from "@/lib/repository";
 
 const DEFAULT_CURRENCY = "INR";
@@ -54,6 +55,48 @@ export interface AnnadhanaBookingRecord {
   orderId?: string;
   payId?: string;
   note?: string;
+}
+
+/** A donor's own Annadhana Sevai booking, for the "My Giving" page. */
+export interface MyAnnadhanaBooking {
+  id: string;
+  occasion: AnnadhanaOccasion;
+  occasionDetail?: string;
+  honoreeName?: string;
+  campaignTitle?: string;
+  eventDate: string; // ISO date
+  amount: number;
+  receivedAmt: number;
+  currency: string;
+  status: AnnadhanaBookingStatus;
+}
+
+/**
+ * The signed-in user's Annadhana Sevai bookings (purpose + amount), newest
+ * event first, capped at 100. Matches by linked account id or donor email.
+ */
+export async function getMyAnnadhanaBookings(
+  owner: GivingOwner,
+): Promise<MyAnnadhanaBooking[]> {
+  await connectMongoDB();
+  const rows = await AnnadhanaBooking.find(ownerFilter(owner, "donorEmail"))
+    .sort({ eventDate: -1 })
+    .limit(100)
+    .lean<AnnadhanaBookingRecord[]>()
+    .exec();
+
+  return rows.map((row) => ({
+    id: String(row._id),
+    occasion: row.occasion,
+    occasionDetail: row.occasionDetail,
+    honoreeName: row.honoreeName,
+    campaignTitle: row.campaignTitle,
+    eventDate: new Date(row.eventDate).toISOString(),
+    amount: row.amount ?? 0,
+    receivedAmt: row.receivedAmt ?? 0,
+    currency: row.currency ?? DEFAULT_CURRENCY,
+    status: row.status,
+  }));
 }
 
 /**

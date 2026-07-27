@@ -38,8 +38,9 @@ export default async function StudentsPage() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {students.map((student) => {
+            // Alumni carry college details, so only School uses school fields.
             const detail =
-              student.student_type === "College"
+              student.student_type !== "School"
                 ? [student.college_name, student.department, student.semester]
                     .filter(Boolean)
                     .join(" · ")

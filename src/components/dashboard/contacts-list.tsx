@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { DeleteButton } from "@/components/dashboard/delete-button";
+import { ContactDialog } from "@/components/dashboard/contact-dialog";
 import { useInfiniteList } from "@/hooks/use-infinite-list";
 import {
   Table,
@@ -117,13 +118,16 @@ export function ContactsList({
                       ? format(new Date(row.createdAt), "dd MMM yyyy")
                       : "—"}
                   </TableCell>
-                  <TableCell className="bg-background sticky right-0 text-right">
-                    <DeleteButton
-                      resource="contacts"
-                      id={row.id}
-                      name={row.name}
-                      label="Delete"
-                    />
+                  <TableCell className="bg-background sticky right-0">
+                    <div className="flex items-center justify-end gap-2">
+                      <ContactDialog contact={row} />
+                      <DeleteButton
+                        resource="contacts"
+                        id={row.id}
+                        name={row.name}
+                        label="Delete"
+                      />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

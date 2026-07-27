@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ImageUploadField } from "@/components/dashboard/image-upload-field";
 
 export interface StudentValues {
   id?: string;
@@ -25,6 +26,11 @@ export interface StudentValues {
   semester?: string;
   parenting_status?: string;
   photo?: string;
+  aadhaar_number?: string;
+  aadhaar_image?: string;
+  pan_number?: string;
+  pan_image?: string;
+  mark_statement_image?: string;
   isDonate?: boolean;
   isStatus?: boolean;
 }
@@ -65,8 +71,12 @@ export function StudentForm({
   const [pending, startTransition] = useTransition();
   const editing = Boolean(initial?.id);
 
+  // Booleans default to false so edit mode never sends `null` for them (only
+  // optional text/image fields are clearable server-side).
   const [values, setValues] = useState<StudentValues>({
     student_type: options.studentTypes[0],
+    isDonate: false,
+    isStatus: false,
     ...initial,
   });
 
@@ -74,7 +84,8 @@ export function StudentForm({
     setValues((prev) => ({ ...prev, [key]: value }));
   }
 
-  const isCollege = values.student_type === "College";
+  // Alumni share the college fields (the institution they graduated from).
+  const isCollege = values.student_type !== "School";
 
   function save() {
     if (!values.student_id?.trim() || !values.name?.trim()) {
@@ -87,10 +98,15 @@ export function StudentForm({
     }
 
     // Drop empty strings so optional fields validate cleanly on the server.
+    // When editing, an emptied optional field is sent as `null` instead so the
+    // server clears the stored value ($unset) rather than leaving it untouched.
     const payload: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(values)) {
       if (key === "id") continue;
-      if (value === "" || value == null) continue;
+      if (value === "" || value == null) {
+        if (editing) payload[key] = null;
+        continue;
+      }
       payload[key] = value;
     }
     payload.amount = Number(values.amount);
@@ -277,6 +293,42 @@ export function StudentForm({
             onChange={(e) => set("photo", e.target.value)}
           />
         </Field>
+
+        <Field label="Aadhaar number (optional)">
+          <Input
+            inputMode="numeric"
+            maxLength={12}
+            value={values.aadhaar_number ?? ""}
+            onChange={(e) => set("aadhaar_number", e.target.value)}
+            placeholder="12-digit Aadhaar"
+          />
+        </Field>
+        <Field label="PAN number (optional)">
+          <Input
+            maxLength={10}
+            value={values.pan_number ?? ""}
+            onChange={(e) => set("pan_number", e.target.value.toUpperCase())}
+            placeholder="ABCDE1234F"
+          />
+        </Field>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <ImageUploadField
+          label="Aadhaar image (optional)"
+          url={values.aadhaar_image ?? ""}
+          onChange={(url) => set("aadhaar_image", url)}
+        />
+        <ImageUploadField
+          label="PAN image (optional)"
+          url={values.pan_image ?? ""}
+          onChange={(url) => set("pan_image", url)}
+        />
+        <ImageUploadField
+          label="Mark statement image (optional)"
+          url={values.mark_statement_image ?? ""}
+          onChange={(url) => set("mark_statement_image", url)}
+        />
       </div>
 
       <Field label="Reason (optional)">

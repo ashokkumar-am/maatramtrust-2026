@@ -2,7 +2,7 @@ import mongoose, { Schema } from "mongoose";
 import { auditUserSchema } from "@/models/audit-schema";
 
 export const GENDERS = ["Male", "Female", "Other"] as const;
-export const STUDENT_TYPES = ["School", "College"] as const;
+export const STUDENT_TYPES = ["School", "College", "Alumni"] as const;
 export const BLOOD_GROUPS = [
   "A+",
   "A-",
@@ -87,6 +87,29 @@ const studentSchema = new Schema(
     marks: {
       type: String,
       default: "",
+    },
+
+    // Identity / academic documents (all optional). Numbers are stored
+    // alongside an uploaded image of the document. Admin-only — never
+    // exposed through the public student views.
+    aadhaar_number: {
+      type: String,
+      trim: true,
+    },
+    aadhaar_image: {
+      type: String,
+    },
+    pan_number: {
+      type: String,
+      trim: true,
+      uppercase: true,
+    },
+    pan_image: {
+      type: String,
+    },
+    // Image of the mark statement backing the `marks` detail above.
+    mark_statement_image: {
+      type: String,
     },
     amount: {
       type: Number,

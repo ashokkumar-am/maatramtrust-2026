@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { getAdminMetrics } from "@/lib/admin-metrics";
+import { getAdminCharts } from "@/lib/admin-charts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  CommunityGrowthChart,
+  MonthlyRaisedChart,
+  SponsorshipsByYearChart,
+} from "@/components/dashboard/overview-charts";
 
 function formatCurrency(amount: number, currency: string): string {
   try {
@@ -51,6 +57,7 @@ export default async function DashboardPage() {
   const isAdmin = user.role === "admin";
 
   if (!isAdmin) {
+    const isEditor = user.role === "editor";
     return (
       <div className="flex flex-col gap-6">
         <div className="flex items-center gap-3">
@@ -60,17 +67,39 @@ export default async function DashboardPage() {
         <p className="text-muted-foreground text-sm">
           Signed in as {user.name ?? user.email}.
         </p>
-        <section className="rounded-lg border p-4">
-          <h2 className="mb-1 font-medium">Member area</h2>
-          <p className="text-muted-foreground text-sm">
-            You have standard <code>user</code> access.
-          </p>
-        </section>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link href="/dashboard/my-giving" className="block">
+            <Card className="hover:border-foreground/20 h-full transition-colors">
+              <CardContent className="p-4">
+                <h2 className="font-medium">My Giving</h2>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Your donations (with receipts), sponsored students and
+                  Annadhana Sevai bookings.
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+          {isEditor && (
+            <Link href="/dashboard/blog" className="block">
+              <Card className="hover:border-foreground/20 h-full transition-colors">
+                <CardContent className="p-4">
+                  <h2 className="font-medium">Blog</h2>
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    Write, edit and publish blog posts.
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+          )}
+        </div>
       </div>
     );
   }
 
-  const metrics = await getAdminMetrics();
+  const [metrics, charts] = await Promise.all([
+    getAdminMetrics(),
+    getAdminCharts(),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -130,6 +159,13 @@ export default async function DashboardPage() {
           value={metrics.documents}
           href="/dashboard/documents"
         />
+      </div>
+
+      <MonthlyRaisedChart data={charts.monthlyRaised} />
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SponsorshipsByYearChart data={charts.sponsorshipsByYear} />
+        <CommunityGrowthChart data={charts.monthlyCommunity} />
       </div>
 
       <p className="text-muted-foreground text-sm">

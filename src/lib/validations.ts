@@ -60,6 +60,22 @@ export const studentCreateSchema = z.object({
   department: z.string().trim().optional(),
   semester: z.string().trim().optional(),
   marks: z.string().trim().optional(),
+  aadhaar_number: z
+    .string()
+    .trim()
+    .regex(/^\d{12}$/, "Aadhaar must be 12 digits")
+    .optional(),
+  aadhaar_image: z.url("Aadhaar image must be a valid URL").optional(),
+  pan_number: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z]{5}\d{4}[A-Z]$/, "PAN must look like ABCDE1234F")
+    .optional(),
+  pan_image: z.url("PAN image must be a valid URL").optional(),
+  mark_statement_image: z
+    .url("Mark statement image must be a valid URL")
+    .optional(),
   amount: z.coerce.number().min(0, "Amount cannot be negative"),
   originalAmount: z.coerce.number().min(0).optional(),
   parenting_status: z.enum(PARENTING_STATUSES).optional(),
@@ -67,8 +83,33 @@ export const studentCreateSchema = z.object({
   isDonate: z.boolean().optional(),
 });
 
-// Every field optional for partial updates; the identifier is passed separately.
-export const studentUpdateSchema = studentCreateSchema.partial();
+// Every field optional for partial updates; the identifier is passed
+// separately. Optional fields also accept an explicit `null`, which clears the
+// stored value (the repository translates null -> $unset); required fields
+// (student_id, name, student_type, amount) can only be replaced, never cleared.
+const partialStudent = studentCreateSchema.partial();
+export const studentUpdateSchema = partialStudent.extend({
+  photo: partialStudent.shape.photo.nullable(),
+  public_id: partialStudent.shape.public_id.nullable(),
+  dob: partialStudent.shape.dob.nullable(),
+  gender: partialStudent.shape.gender.nullable(),
+  phonenumber: partialStudent.shape.phonenumber.nullable(),
+  reason: partialStudent.shape.reason.nullable(),
+  blood_group: partialStudent.shape.blood_group.nullable(),
+  school_name: partialStudent.shape.school_name.nullable(),
+  grade_level: partialStudent.shape.grade_level.nullable(),
+  college_name: partialStudent.shape.college_name.nullable(),
+  department: partialStudent.shape.department.nullable(),
+  semester: partialStudent.shape.semester.nullable(),
+  marks: partialStudent.shape.marks.nullable(),
+  aadhaar_number: partialStudent.shape.aadhaar_number.nullable(),
+  aadhaar_image: partialStudent.shape.aadhaar_image.nullable(),
+  pan_number: partialStudent.shape.pan_number.nullable(),
+  pan_image: partialStudent.shape.pan_image.nullable(),
+  mark_statement_image: partialStudent.shape.mark_statement_image.nullable(),
+  originalAmount: partialStudent.shape.originalAmount.nullable(),
+  parenting_status: partialStudent.shape.parenting_status.nullable(),
+});
 
 export const sponsorshipCreateSchema = z.object({
   donorName: z.string().trim().min(1).optional(),
@@ -162,7 +203,15 @@ export const bannerCreateSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-export const bannerUpdateSchema = bannerCreateSchema.partial();
+// Optional text fields accept an explicit `null` on update, which clears the
+// stored value (the repository translates null -> $unset).
+const partialBanner = bannerCreateSchema.partial();
+export const bannerUpdateSchema = partialBanner.extend({
+  title: partialBanner.shape.title.nullable(),
+  alt: partialBanner.shape.alt.nullable(),
+  caption: partialBanner.shape.caption.nullable(),
+  link: partialBanner.shape.link.nullable(),
+});
 
 function slugify(value: string): string {
   return value

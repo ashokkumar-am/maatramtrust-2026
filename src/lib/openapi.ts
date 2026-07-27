@@ -480,6 +480,24 @@ export const openApiSpec = {
         },
       },
     },
+    "/api/me/donations/{id}/receipt": {
+      parameters: [idParam],
+      get: {
+        tags: ["Me"],
+        summary:
+          "Download the signed-in donor's own donation receipt (PDF); 404 for others' donations",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": {
+            description: "The receipt PDF (attachment)",
+            content: { "application/pdf": {} },
+          },
+          "401": { $ref: "#/components/responses/Unauthorized" },
+          "404": { $ref: "#/components/responses/NotFound" },
+          "409": messageResponse("Donation not completed — no receipt"),
+        },
+      },
+    },
     "/api/admin/users": {
       get: {
         tags: ["Admin · Users"],
@@ -1063,7 +1081,10 @@ export const openApiSpec = {
           gender: { type: "string", enum: ["Male", "Female", "Other"] },
           phonenumber: { type: "string", example: "9000012345" },
           reason: { type: "string" },
-          student_type: { type: "string", enum: ["School", "College"] },
+          student_type: {
+            type: "string",
+            enum: ["School", "College", "Alumni"],
+          },
           blood_group: {
             type: "string",
             enum: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"],
@@ -1074,6 +1095,15 @@ export const openApiSpec = {
           department: { type: "string" },
           semester: { type: "string" },
           marks: { type: "string" },
+          aadhaar_number: { type: "string", pattern: "^\\d{12}$" },
+          aadhaar_image: { type: "string", format: "uri" },
+          pan_number: {
+            type: "string",
+            pattern: "^[A-Z]{5}\\d{4}[A-Z]$",
+            example: "ABCDE1234F",
+          },
+          pan_image: { type: "string", format: "uri" },
+          mark_statement_image: { type: "string", format: "uri" },
           amount: { type: "number", minimum: 0, example: 2300 },
           originalAmount: { type: "number", minimum: 0 },
           parenting_status: {

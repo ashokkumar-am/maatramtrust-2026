@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { DeleteButton } from "@/components/dashboard/delete-button";
+import { NewsletterDialog } from "@/components/dashboard/newsletter-dialog";
 import { useInfiniteList } from "@/hooks/use-infinite-list";
 import {
   Table,
@@ -100,13 +101,16 @@ export function NewsletterList({
                       ? format(new Date(row.createdAt), "dd MMM yyyy")
                       : "—"}
                   </TableCell>
-                  <TableCell className="bg-background sticky right-0 text-right">
-                    <DeleteButton
-                      resource="newsletter"
-                      id={row.id}
-                      name={row.email}
-                      label="Delete"
-                    />
+                  <TableCell className="bg-background sticky right-0">
+                    <div className="flex items-center justify-end gap-2">
+                      <NewsletterDialog subscriber={row} />
+                      <DeleteButton
+                        resource="newsletter"
+                        id={row.id}
+                        name={row.email}
+                        label="Delete"
+                      />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

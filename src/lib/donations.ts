@@ -3,6 +3,7 @@ import type { Collection } from "mongodb";
 import { nanoid } from "nanoid";
 import clientPromise from "@/lib/mongodb";
 import type { AuditUser } from "@/lib/audit";
+import { ownerFilter, type GivingOwner } from "@/lib/giving";
 
 export type DonationStatus = "created" | "captured" | "failed" | "refunded";
 
@@ -371,27 +372,6 @@ export async function getAdminDonations(
     at: doc.capturedAt ?? doc.createdAt,
   }));
 }
-
-/**
- * The signed-in account a giving record belongs to. Matched by `userId` when
- * the record was made while signed in, or by the account's email for records
- * keyed only by address (e.g. admin cash entries for a known donor).
- */
-export interface GivingOwner {
-  userId: string;
-  email?: string | null;
-}
-
-function ownerFilter(
-  owner: GivingOwner,
-  emailField: "email" | "donorEmail",
-): Record<string, unknown> {
-  const or: Record<string, unknown>[] = [{ userId: owner.userId }];
-  if (owner.email) or.push({ [emailField]: owner.email });
-  return { $or: or };
-}
-
-export { ownerFilter };
 
 /** A donor's own donation, serializable for the "My Giving" page. */
 export interface MyDonation {

@@ -13,7 +13,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 p-4 sm:flex-row sm:p-6">
+    <div className="flex w-full flex-1 flex-col gap-6 p-4 sm:flex-row sm:p-6 lg:px-8">
       <DashboardNav role={session.user.role} />
       <div className="min-w-0 flex-1">{children}</div>
     </div>

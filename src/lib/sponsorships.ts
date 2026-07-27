@@ -1,6 +1,7 @@
 import connectMongoDB from "@/lib/mongoose";
 import StudentPayment from "@/models/StudentPaymentModel";
 import type { AuditUser } from "@/lib/audit";
+import { ownerFilter, type GivingOwner } from "@/lib/giving";
 
 export interface SponsorshipInput {
   studentId: string;
@@ -30,6 +31,8 @@ export interface SponsorshipRecord {
   status: "pending" | "received" | "failed";
   orderId?: string;
   payId?: string;
+  note?: string;
+  createdAt?: Date;
 }
 
 const DEFAULT_CURRENCY = "INR";
@@ -111,6 +114,45 @@ export async function sponsorshipExistsForOrder(
 ): Promise<boolean> {
   await connectMongoDB();
   return (await StudentPayment.exists({ orderId })) != null;
+}
+
+/** A donor's own sponsorship, serializable for the "My Giving" page. */
+export interface MySponsorship {
+  id: string;
+  studentName?: string;
+  year: number;
+  amount: number;
+  receivedAmt: number;
+  currency: string;
+  status: "pending" | "received" | "failed";
+  at: string; // ISO date
+}
+
+/**
+ * The signed-in user's student sponsorships, newest first (capped at 100).
+ * Matches by linked account id or, for records made before linking existed
+ * (and admin manual entries), by donor email.
+ */
+export async function getMySponsorships(
+  owner: GivingOwner,
+): Promise<MySponsorship[]> {
+  await connectMongoDB();
+  const rows = await StudentPayment.find(ownerFilter(owner, "donorEmail"))
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .lean<(SponsorshipRecord & { createdAt?: Date })[]>()
+    .exec();
+
+  return rows.map((row) => ({
+    id: String(row._id),
+    studentName: row.studentName,
+    year: row.year,
+    amount: row.amount ?? 0,
+    receivedAmt: row.receivedAmt ?? 0,
+    currency: row.currency ?? DEFAULT_CURRENCY,
+    status: row.status,
+    at: (row.createdAt ?? new Date(0)).toISOString(),
+  }));
 }
 
 export interface YearSponsorships {
