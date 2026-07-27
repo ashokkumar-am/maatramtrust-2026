@@ -3,12 +3,13 @@
 Living document tracking implementation status of backend features. Update this
 whenever an endpoint, model, or lib helper is added or changed.
 
-_Last updated: 2026-07-27 (admin CRUD dialogs for banners/contacts/newsletter; full-width dashboard + framer-motion transitions; overview bar charts)_
+_Last updated: 2026-07-27 (Amplify deploy config; `/api/v1/health` env-presence health check)_
 
 ## API Endpoints
 
 | Endpoint                                     | Method | Status      | Notes                                                                           |
 | -------------------------------------------- | ------ | ----------- | ------------------------------------------------------------------------------- |
+| `/api/v1/health`                             | GET    | ✅ Done     | Env-presence health check (booleans only); 503 when keys missing.               |
 | `/api/v1/contact`                            | POST   | ✅ Done     | Creates a contact. zod-validated; 400 on invalid input.                         |
 | `/api/v1/newsletter`                         | POST   | ✅ Done     | Subscribes an email. zod-validated; 409 if already subscribed.                  |
 | `/api/v1/banners`                            | GET    | ✅ Done     | Public: active homepage banners, ordered.                                       |
