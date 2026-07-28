@@ -27,13 +27,29 @@ const BRAND_GREEN = rgb(0.039, 0.49, 0.243); // #0a7d3e
 const INK = rgb(0.07, 0.07, 0.07);
 const MUTED = rgb(0.45, 0.45, 0.45);
 
+/**
+ * pdf-lib's standard fonts only encode WinAnsi (Latin-1) — "₹", Tamil names,
+ * smart quotes, etc. would throw at drawText. Map the rupee sign to "Rs." and
+ * replace anything else unencodable rather than failing the whole receipt.
+ */
+function winAnsiSafe(text: string): string {
+  return text
+    .replace(/₹/g, "Rs. ")
+    .normalize("NFKD")
+    .replace(/[^\x20-\x7e\xa0-\xff]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function formatCurrency(amount: number, currency: string): string {
   try {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 2,
-    }).format(amount);
+    return winAnsiSafe(
+      new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency,
+        maximumFractionDigits: 2,
+      }).format(amount),
+    );
   } catch {
     return `${amount} ${currency}`;
   }
@@ -103,8 +119,8 @@ export async function generateDonationReceipt(
   const rows: Array<[string, string]> = [
     ["Receipt No.", data.receiptNumber],
     ["Date", formatDate(data.date)],
-    ["Received from", data.donorName?.trim() || "Anonymous Donor"],
-    ["Purpose", data.category?.trim() || "General donation"],
+    ["Received from", winAnsiSafe(data.donorName ?? "") || "Anonymous Donor"],
+    ["Purpose", winAnsiSafe(data.category ?? "") || "General donation"],
     ["Payment reference", data.paymentId],
   ];
 

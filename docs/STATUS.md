@@ -3,7 +3,7 @@
 Living document tracking implementation status of backend features. Update this
 whenever an endpoint, model, or lib helper is added or changed.
 
-_Last updated: 2026-07-27 (blog URLs → `/blog/{category}/{slug}` with category listing pages; navbar Blog dropdown; Amplify deploy config; `/api/v1/health` health check)_
+_Last updated: 2026-07-28 (receipt PDF text sanitized to WinAnsi so pdf-lib standard fonts never throw)_
 
 ## API Endpoints
 
@@ -106,7 +106,7 @@ still outranks stored roles.
 | `mongodb.ts`             | ✅ Existing | Native `mongodb` driver `clientPromise`. Used by `auth.ts`, `donations.ts`.                                                                                                                                                                                                                                           |
 | `donations.ts`           | ✅ Done     | Donation ledger (native driver): order/capture-once, cash entry (backdatable), void/refund, admin list, masked wall.                                                                                                                                                                                                  |
 | `donation-fulfilment.ts` | ✅ Done     | On the capture transition: build PDF receipt + fire `donation.received` (once).                                                                                                                                                                                                                                       |
-| `receipt.ts`             | ✅ Done     | `generateDonationReceipt()` — branded PDF receipt via pdf-lib (80G-upgradeable).                                                                                                                                                                                                                                      |
+| `receipt.ts`             | ✅ Done     | `generateDonationReceipt()` — branded PDF receipt via pdf-lib (80G-upgradeable). Text sanitized to WinAnsi (₹ → "Rs.", non-Latin stripped) so pdf-lib standard fonts never throw.                                                                                                                                     |
 | `razorpay.ts`            | ✅ Existing | Razorpay client + donation constants (min amount, currency, public key id).                                                                                                                                                                                                                                           |
 | `validations.ts`         | ✅ Done     | Shared zod schemas (contact, newsletter, student — create + update). Student update: optional fields accept `null` to clear the stored value ($unset via repository).                                                                                                                                                 |
 | `students.ts`            | ✅ Done     | Student write ops for Server Actions; delegates to `studentRepository`.                                                                                                                                                                                                                                               |
