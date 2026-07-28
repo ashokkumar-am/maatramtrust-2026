@@ -5,6 +5,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "sonner";
 import { AuthHeader } from "@/components/auth-header";
+import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { ThemeScript } from "@/components/theme-script";
 import { DEFAULT_THEME, isTheme, THEME_COOKIE, type Theme } from "@/lib/theme";
 
@@ -50,6 +51,7 @@ export default async function RootLayout({
     >
       <body className="flex min-h-full flex-col">
         <ThemeScript theme={theme} />
+        <ServiceWorkerRegistration />
         <AuthHeader theme={theme} />
         {children}
         <Toaster richColors position="top-center" />

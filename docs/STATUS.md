@@ -3,7 +3,7 @@
 Living document tracking implementation status of backend features. Update this
 whenever an endpoint, model, or lib helper is added or changed.
 
-_Last updated: 2026-07-28 (receipt PDF text sanitized to WinAnsi so pdf-lib standard fonts never throw)_
+_Last updated: 2026-07-28 (PWA installability: `app/manifest.ts`, `public/sw.js` + registration component, app icons)_
 
 ## API Endpoints
 
@@ -218,6 +218,8 @@ Config env: `AWS_REGION`, `SES_FROM_EMAIL`, `ADMIN_EMAIL`, AWS credentials
 | `components/dashboard/media-gallery-field`                           | ✅ Done | Multi photo/video Cloudinary upload widget (functional-state onAdd/onRemove; URL fallback).                                                                    |
 | `app/dashboard/users/page.tsx`                                       | ✅ Done | Admin: signed-in users, infinite scroll + search; role/status via Server Actions.                                                                              |
 | `components/dashboard/users-list` + `user-actions`                   | ✅ Done | Client table (avatar, provider badges, role/status) + row menu with confirm dialogs; self and env-admin rows locked.                                           |
+| `app/manifest.ts`                                                    | ✅ Done | PWA web app manifest (Next metadata route → `/manifest.webmanifest`); standalone display, icons in `public/icons/`.                                            |
+| `components/service-worker-registration`                             | ✅ Done | Client no-op renderer; registers `public/sw.js` (pass-through SW) so browsers offer Install / "Open in app".                                                   |
 
 `next.config.ts` allows `res.cloudinary.com` images.
 
