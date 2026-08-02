@@ -1,11 +1,14 @@
+import { cache } from "react";
+import { isValidObjectId } from "mongoose";
 import connectMongoDB from "@/lib/mongoose";
 import Student, { type STUDENT_TYPES } from "@/models/StudentModel";
 import StudentPayment from "@/models/StudentPaymentModel";
+import { getStudentSponsorshipsByYear } from "@/lib/sponsorships";
 
 export type StudentType = (typeof STUDENT_TYPES)[number];
 
-/** Public, serializable student shape (safe for Client Components). */
-export interface StudentView {
+/** Public, serializable student core (no sponsorship aggregates). */
+export interface StudentProfile {
   id: string;
   student_id: string;
   name: string;
@@ -18,6 +21,10 @@ export interface StudentView {
   college_name?: string;
   department?: string;
   semester?: string;
+}
+
+/** Public, serializable student shape (safe for Client Components). */
+export interface StudentView extends StudentProfile {
   /** Amount received toward this student's goal in the current year. */
   receivedThisYear: number;
   /** True when this year's goal is met (fully sponsored). */
@@ -50,15 +57,7 @@ interface StudentDoc {
 const PUBLIC_FIELDS =
   "student_id name photo student_type reason amount school_name grade_level college_name department semester";
 
-function toView(
-  doc: StudentDoc,
-  years: YearAgg[],
-  currentYear: number,
-): StudentView {
-  const amount = doc.amount ?? 0;
-  const receivedThisYear =
-    years.find((y) => y.year === currentYear)?.total ?? 0;
-
+function toProfile(doc: StudentDoc): StudentProfile {
   return {
     id: String(doc._id),
     student_id: doc.student_id,
@@ -66,14 +65,28 @@ function toView(
     photo: doc.photo,
     student_type: doc.student_type,
     reason: doc.reason,
-    amount,
+    amount: doc.amount ?? 0,
     school_name: doc.school_name,
     grade_level: doc.grade_level,
     college_name: doc.college_name,
     department: doc.department,
     semester: doc.semester,
+  };
+}
+
+function toView(
+  doc: StudentDoc,
+  years: YearAgg[],
+  currentYear: number,
+): StudentView {
+  const profile = toProfile(doc);
+  const receivedThisYear =
+    years.find((y) => y.year === currentYear)?.total ?? 0;
+
+  return {
+    ...profile,
     receivedThisYear,
-    funded: amount > 0 && receivedThisYear >= amount,
+    funded: profile.amount > 0 && receivedThisYear >= profile.amount,
     sponsorsByYear: years
       .map((y) => ({ year: y.year, names: y.names }))
       .filter((y) => y.names.length > 0),
@@ -150,4 +163,57 @@ export async function getPublicStudentById(
   const currentYear = new Date().getFullYear();
   const sponsorships = await sponsorshipsByStudent();
   return toView(doc, sponsorships.get(String(doc._id)) ?? [], currentYear);
+}
+
+/**
+ * Student core for the public detail page, without sponsorship aggregates.
+ * Tolerates malformed ids (returns null). Request-scoped `cache` dedupes the
+ * page + generateMetadata lookups.
+ */
+export const getPublicStudentProfile = cache(
+  async (id: string): Promise<StudentProfile | null> => {
+    if (!isValidObjectId(id)) return null;
+    await connectMongoDB();
+    const doc = await Student.findById(id)
+      .select(PUBLIC_FIELDS)
+      .lean<StudentDoc>()
+      .exec();
+    return doc ? toProfile(doc) : null;
+  },
+);
+
+/** Public-safe slice of one year's sponsorships: names only, no contacts. */
+export interface PublicYearSponsors {
+  year: number;
+  /** Confirmed sponsorship count for the year. */
+  count: number;
+  /** Total received for the year. */
+  received: number;
+  /** Confirmed sponsor names, newest first. */
+  names: string[];
+}
+
+/**
+ * Year-wise confirmed sponsor history for one student, stripped to what is
+ * safe to show publicly (no donor emails/phones, no pending pledges).
+ */
+export async function getPublicSponsorYears(
+  studentId: string,
+): Promise<PublicYearSponsors[]> {
+  if (!isValidObjectId(studentId)) return [];
+  const years = await getStudentSponsorshipsByYear(studentId);
+
+  return years
+    .map((bucket) => {
+      const names = bucket.sponsorships
+        .filter((s) => s.status === "received")
+        .map((s) => s.donorName?.trim() || "Anonymous");
+      return {
+        year: bucket.year,
+        count: names.length,
+        received: bucket.received,
+        names,
+      };
+    })
+    .filter((year) => year.count > 0);
 }

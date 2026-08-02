@@ -14,3 +14,8 @@ export function cn(...inputs: ClassValue[]) {
 export function toLocalDay(iso: string): Date {
   return new Date(`${iso.slice(0, 10)}T00:00:00`);
 }
+
+/** Format a major-unit rupee amount for display, e.g. `₹1,50,000`. */
+export function inr(value: number): string {
+  return `₹${value.toLocaleString("en-IN")}`;
+}
