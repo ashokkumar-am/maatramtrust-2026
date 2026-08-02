@@ -34,7 +34,13 @@ const dbTracingIncludes = externalDbPackages.map(
 
 const nextConfig: NextConfig = {
   images: {
-    remotePatterns: [{ protocol: "https", hostname: "res.cloudinary.com" }],
+    remotePatterns: [
+      { protocol: "https", hostname: "res.cloudinary.com" },
+      // Placeholder photo hosts used by scripts/seed-dummy-data.mjs demo data.
+      { protocol: "https", hostname: "picsum.photos" },
+      { protocol: "https", hostname: "fastly.picsum.photos" },
+      { protocol: "https", hostname: "randomuser.me" },
+    ],
   },
   outputFileTracingIncludes: {
     "/*": dbTracingIncludes,

@@ -2,13 +2,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { getCampaignFeedBySlug } from "@/lib/annadhana";
+import {
+  getCampaignFeedBySlug,
+  getUpcomingSponsoredDays,
+} from "@/lib/annadhana";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   CampaignFeed,
   type FeedDay,
 } from "@/components/annadhana/campaign-feed";
+import { UpcomingDays } from "@/components/annadhana/upcoming-days";
 
 const PAGE_SIZE = 10;
 
@@ -22,6 +26,7 @@ export default async function CampaignFeedPage({
   if (!feed) notFound();
 
   const { campaign } = feed;
+  const upcomingDays = await getUpcomingSponsoredDays(campaign.id);
   const progress = campaign.targetAmount
     ? Math.min(100, (campaign.raisedAmount / campaign.targetAmount) * 100)
     : null;
@@ -80,6 +85,8 @@ export default async function CampaignFeedPage({
           </Link>
         </div>
       </header>
+
+      <UpcomingDays days={upcomingDays} />
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Daily updates</h2>

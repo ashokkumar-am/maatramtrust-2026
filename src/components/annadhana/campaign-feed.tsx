@@ -6,6 +6,10 @@ import { format } from "date-fns";
 import { HeartHandshake } from "lucide-react";
 import { toLocalDay } from "@/lib/utils";
 import { useInfiniteList } from "@/hooks/use-infinite-list";
+import {
+  occasionPhrase,
+  type OccasionSponsor,
+} from "@/components/annadhana/occasion";
 
 export interface FeedMedia {
   url: string;
@@ -13,12 +17,7 @@ export interface FeedMedia {
   mediaType: "image" | "video";
 }
 
-export interface FeedSponsor {
-  donorName?: string;
-  occasion: string;
-  occasionDetail?: string;
-  honoreeName?: string;
-}
+export type FeedSponsor = OccasionSponsor;
 
 export interface FeedDay {
   id: string;
@@ -27,21 +26,6 @@ export interface FeedDay {
   description?: string;
   media: FeedMedia[];
   sponsors: FeedSponsor[];
-}
-
-/** "their birthday", "the memory of Lakshmi", "their wedding anniversary"… */
-function occasionPhrase(sponsor: FeedSponsor): string {
-  const honoree = sponsor.honoreeName;
-  switch (sponsor.occasion) {
-    case "birthday":
-      return honoree ? `${honoree}'s birthday` : "a birthday";
-    case "anniversary":
-      return honoree ? `${honoree}'s anniversary` : "an anniversary";
-    case "memorial":
-      return honoree ? `the memory of ${honoree}` : "a loved one's memory";
-    default:
-      return sponsor.occasionDetail || "a celebration";
-  }
 }
 
 function SponsorLine({ sponsors }: { sponsors: FeedSponsor[] }) {

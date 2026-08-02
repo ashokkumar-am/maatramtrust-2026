@@ -455,6 +455,53 @@ async function sponsorsByDay(
   return byDay;
 }
 
+/** A future day already sponsored, with everyone credited for it. */
+export interface UpcomingDay {
+  date: string; // ISO (midnight UTC)
+  sponsors: DailySponsor[];
+}
+
+/**
+ * Future days (today onwards, UTC) already sponsored for a campaign:
+ * received bookings — campaign-tagged or general — grouped by day, soonest
+ * first, capped at `limit` days.
+ */
+export async function getUpcomingSponsoredDays(
+  campaignId: unknown,
+  limit = 30,
+): Promise<UpcomingDay[]> {
+  await connectMongoDB();
+  const todayUTC = new Date(new Date().toISOString().slice(0, 10));
+
+  const bookings = await AnnadhanaBooking.find({
+    status: "received",
+    eventDate: { $gte: todayUTC },
+    $or: [{ campaignId }, { campaignId: null }],
+  })
+    .select("eventDate donorName occasion occasionDetail honoreeName")
+    .sort({ eventDate: 1, createdAt: 1 })
+    .lean<SponsorBookingDoc[]>()
+    .exec();
+
+  const byDay = new Map<string, UpcomingDay>();
+  for (const booking of bookings) {
+    const key = dayKey(booking.eventDate);
+    if (!byDay.has(key) && byDay.size >= limit) break;
+    const day = byDay.get(key) ?? {
+      date: new Date(key).toISOString(),
+      sponsors: [],
+    };
+    day.sponsors.push({
+      donorName: booking.donorName,
+      occasion: booking.occasion,
+      occasionDetail: booking.occasionDetail,
+      honoreeName: booking.honoreeName,
+    });
+    byDay.set(key, day);
+  }
+  return [...byDay.values()];
+}
+
 /**
  * Public day-wise feed for a campaign: its active updates (newest day first,
  * paginated) with each day's media and sponsors. `null` when the slug doesn't
