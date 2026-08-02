@@ -3,6 +3,8 @@ import { HeartHandshake } from "lucide-react";
 import type { PublicDonation } from "@/lib/donations";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { FadeIn } from "@/components/motion/fade-in";
+import { StaggerContainer, StaggerItem } from "@/components/motion/stagger";
 
 function formatCurrency(amount: number, currency: string): string {
   try {
@@ -29,22 +31,27 @@ export function RecentDonations({
   if (donations.length === 0) return null;
 
   return (
-    <section className="mx-auto w-full max-w-5xl px-4 py-12">
-      <div className="mb-6 flex items-center gap-2">
-        <HeartHandshake className="size-5 text-[#0a7d3e]" />
-        <h2 className="text-xl font-semibold tracking-tight">
-          Recent supporters
-        </h2>
-      </div>
+    <section className="mx-auto w-full max-w-6xl px-4 py-20 sm:px-6">
+      <FadeIn className="mb-8">
+        <div className="flex items-center gap-2">
+          <HeartHandshake className="text-primary size-5" />
+          <h2 className="text-3xl font-semibold tracking-tight">
+            Recent supporters
+          </h2>
+        </div>
+        <p className="text-muted-foreground mt-2 text-sm">
+          Real people, giving in real time.
+        </p>
+      </FadeIn>
 
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <StaggerContainer className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {donations.map((donation) => (
-          <li key={donation.id}>
+          <StaggerItem key={donation.id}>
             <Card className="h-full">
               <CardContent className="flex flex-col gap-2 p-4">
                 <div className="flex items-start justify-between gap-2">
                   <span className="font-medium">{donation.name}</span>
-                  <span className="font-semibold whitespace-nowrap text-[#0a7d3e]">
+                  <span className="text-primary font-semibold whitespace-nowrap">
                     {formatCurrency(donation.amount, donation.currency)}
                   </span>
                 </div>
@@ -62,9 +69,9 @@ export function RecentDonations({
                 </div>
               </CardContent>
             </Card>
-          </li>
+          </StaggerItem>
         ))}
-      </ul>
+      </StaggerContainer>
     </section>
   );
 }

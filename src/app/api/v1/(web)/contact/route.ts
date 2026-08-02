@@ -1,7 +1,5 @@
-import connectMongoDB from "@/lib/mongoose";
-import Contact from "@/models/ContactModel";
+import { createContact } from "@/lib/contacts";
 import { contactSchema } from "@/lib/validations";
-import { triggerEmail } from "@/lib/email";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -17,15 +15,7 @@ export async function POST(request: Request) {
       );
     }
 
-    await connectMongoDB();
-    await Contact.create(parsed.data);
-
-    triggerEmail("contact.created", {
-      name: parsed.data.name,
-      email: parsed.data.email,
-      mobile: parsed.data.mobile,
-      comments: parsed.data.comments,
-    });
+    await createContact(parsed.data);
 
     return NextResponse.json({ message: "Contact Created" }, { status: 201 });
   } catch (error) {
