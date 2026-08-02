@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import {
   getCampaignFeedBySlug,
+  getCampaignUpdateArchive,
   getUpcomingSponsoredDays,
 } from "@/lib/annadhana";
 import { buttonVariants } from "@/components/ui/button";
@@ -13,26 +14,39 @@ import {
   type FeedDay,
 } from "@/components/annadhana/campaign-feed";
 import { UpcomingDays } from "@/components/annadhana/upcoming-days";
+import { FeedArchive } from "@/components/annadhana/feed-archive";
 
 const PAGE_SIZE = 10;
 
 export default async function CampaignFeedPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ year?: string; month?: string }>;
 }) {
-  const { slug } = await params;
-  const feed = await getCampaignFeedBySlug(slug, { limit: PAGE_SIZE });
+  const [{ slug }, query] = await Promise.all([params, searchParams]);
+  const year = Number(query.year) || undefined;
+  const month = year ? Number(query.month) || undefined : undefined;
+
+  const feed = await getCampaignFeedBySlug(slug, {
+    limit: PAGE_SIZE,
+    year,
+    month,
+  });
   if (!feed) notFound();
 
   const { campaign } = feed;
-  const upcomingDays = await getUpcomingSponsoredDays(campaign.id);
+  const [upcomingDays, archive] = await Promise.all([
+    getUpcomingSponsoredDays(campaign.id),
+    getCampaignUpdateArchive(campaign.id),
+  ]);
   const progress = campaign.targetAmount
     ? Math.min(100, (campaign.raisedAmount / campaign.targetAmount) * 100)
     : null;
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
       <Link
         href="/annadhana"
         className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1 text-sm"
@@ -49,7 +63,7 @@ export default async function CampaignFeedPage({
             width={960}
             height={360}
             unoptimized
-            className="mb-4 max-h-64 w-full rounded-lg object-cover"
+            className="mb-4 max-h-80 w-full rounded-xl object-cover"
           />
         )}
         <h1 className="text-3xl font-semibold tracking-tight">
@@ -90,10 +104,18 @@ export default async function CampaignFeedPage({
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Daily updates</h2>
+        <FeedArchive
+          archive={archive}
+          basePath={`/annadhana/${campaign.slug}`}
+          year={year}
+          month={month}
+        />
         <CampaignFeed
+          key={`${year ?? "all"}-${month ?? "all"}`}
           slug={campaign.slug}
           initialItems={feed.items as FeedDay[]}
           pageSize={PAGE_SIZE}
+          period={{ year, month }}
         />
       </section>
     </main>

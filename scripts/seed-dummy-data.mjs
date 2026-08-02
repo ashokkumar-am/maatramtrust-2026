@@ -333,7 +333,7 @@ async function seedAnnadhana(db) {
     image: picsum("annadhana-hero", 1600, 900),
     minAmount: 1500,
     targetAmount: 500000,
-    startDate: new Date(Date.UTC(year, 0, 1)),
+    startDate: new Date(Date.UTC(year - 1, 10, 1)),
     endDate: new Date(Date.UTC(year, 11, 31)),
     order: 1,
     isActive: true,
@@ -391,6 +391,39 @@ async function seedAnnadhana(db) {
   for (let offset = 0; offset < 15; offset++) {
     if (offset % 4 === 3) continue; // leave some days open to book
     bookingDocs.push(booking(dayUTC(offset), offset + 3, "online"));
+  }
+
+  // Older history so the feed archive spans months and years: three served
+  // days per month from last November up to where the daily window begins.
+  const dailyWindowStart = dayUTC(-25);
+  const olderMonths = [
+    [year - 1, 10],
+    [year - 1, 11],
+    ...Array.from({ length: now.getUTCMonth() + 1 }, (_, m) => [year, m]),
+  ];
+  let olderSeed = 100;
+  for (const [y, m] of olderMonths) {
+    for (const d of [5, 15, 25]) {
+      const date = new Date(Date.UTC(y, m, d));
+      if (date >= dailyWindowStart) continue;
+      olderSeed += 1;
+      bookingDocs.push(booking(date, olderSeed, "manual"));
+      updateDocs.push({
+        ...SEED,
+        campaignId,
+        campaignTitle,
+        date,
+        title: "Morning breakfast served",
+        description: `Hot idli, sambar and coffee served to ${70 + ((olderSeed * 13) % 50)} neighbours at our Thiruvanmiyur centre.`,
+        media: [1, 2, 3].map((n) => ({
+          url: picsum(`annadhana-${y}-${m + 1}-${d}-${n}`),
+          mediaType: "image",
+        })),
+        isActive: true,
+        createdAt: new Date(date.getTime() + 10 * 3600000),
+        updatedAt: now,
+      });
+    }
   }
 
   function booking(eventDate, seed, source) {

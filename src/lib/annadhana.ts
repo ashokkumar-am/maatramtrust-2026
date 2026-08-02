@@ -502,14 +502,75 @@ export async function getUpcomingSponsoredDays(
   return [...byDay.values()];
 }
 
+/** One year of the update archive: which months have updates, with counts. */
+export interface UpdateArchiveYear {
+  year: number;
+  months: { month: number; count: number }[];
+}
+
+/**
+ * Year → month archive of a campaign's active updates (newest first), for
+ * the public feed's period filter.
+ */
+export async function getCampaignUpdateArchive(
+  campaignId: string,
+): Promise<UpdateArchiveYear[]> {
+  await connectMongoDB();
+  const rows = await AnnadhanaUpdate.aggregate<{
+    _id: { year: number; month: number };
+    count: number;
+  }>([
+    {
+      $match: {
+        campaignId: new mongoose.Types.ObjectId(campaignId),
+        isActive: true,
+      },
+    },
+    {
+      $group: {
+        _id: { year: { $year: "$date" }, month: { $month: "$date" } },
+        count: { $sum: 1 },
+      },
+    },
+    { $sort: { "_id.year": -1, "_id.month": -1 } },
+  ]);
+
+  const years: UpdateArchiveYear[] = [];
+  for (const row of rows) {
+    let bucket = years.find((y) => y.year === row._id.year);
+    if (!bucket) {
+      bucket = { year: row._id.year, months: [] };
+      years.push(bucket);
+    }
+    bucket.months.push({ month: row._id.month, count: row.count });
+  }
+  return years;
+}
+
+/** Optional year/month (1-12, UTC) window for the public feed. */
+export interface FeedPeriod {
+  year?: number;
+  month?: number;
+}
+
+/** Mongo date filter for a year (or year+month) window; empty when no year. */
+function periodFilter(period: FeedPeriod): Record<string, unknown> {
+  if (!period.year) return {};
+  const from = new Date(Date.UTC(period.year, (period.month ?? 1) - 1, 1));
+  const to = period.month
+    ? new Date(Date.UTC(period.year, period.month, 1))
+    : new Date(Date.UTC(period.year + 1, 0, 1));
+  return { date: { $gte: from, $lt: to } };
+}
+
 /**
  * Public day-wise feed for a campaign: its active updates (newest day first,
- * paginated) with each day's media and sponsors. `null` when the slug doesn't
- * match an active campaign.
+ * paginated) with each day's media and sponsors, optionally narrowed to a
+ * year or month. `null` when the slug doesn't match an active campaign.
  */
 export async function getCampaignFeedBySlug(
   slug: string,
-  options: { page?: number; limit?: number } = {},
+  options: { page?: number; limit?: number } & FeedPeriod = {},
 ): Promise<CampaignFeed | null> {
   await connectMongoDB();
   const campaignDoc = await AnnadhanaCampaign.findOne({ slug, isActive: true })
@@ -520,7 +581,11 @@ export async function getCampaignFeedBySlug(
   const limit = Math.min(Math.max(options.limit ?? 10, 1), 50);
   const page = Math.max(options.page ?? 1, 1);
 
-  const filter = { campaignId: campaignDoc._id, isActive: true };
+  const filter = {
+    campaignId: campaignDoc._id,
+    isActive: true,
+    ...periodFilter(options),
+  };
   const [updates, total, raised] = await Promise.all([
     AnnadhanaUpdate.find(filter)
       .sort({ date: -1 })

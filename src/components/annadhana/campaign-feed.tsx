@@ -52,7 +52,7 @@ function SponsorLine({ sponsors }: { sponsors: FeedSponsor[] }) {
 function MediaGrid({ media }: { media: FeedMedia[] }) {
   if (media.length === 0) return null;
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
       {media.map((item) => (
         <div
           key={item.publicId ?? item.url}
@@ -81,21 +81,34 @@ function MediaGrid({ media }: { media: FeedMedia[] }) {
   );
 }
 
+export interface FeedPeriodFilter {
+  year?: number;
+  month?: number;
+}
+
 export function CampaignFeed({
   slug,
   initialItems,
   pageSize,
+  period,
 }: {
   slug: string;
   initialItems: FeedDay[];
   pageSize: number;
+  /** Year/month window the feed is narrowed to (matches the SSR page 1). */
+  period?: FeedPeriodFilter;
 }) {
+  const periodYear = period?.year;
+  const periodMonth = period?.month;
+
   const fetchPage = useCallback(
     async (page: number): Promise<FeedDay[]> => {
       const params = new URLSearchParams({
         page: String(page),
         limit: String(pageSize),
       });
+      if (periodYear) params.set("year", String(periodYear));
+      if (periodMonth) params.set("month", String(periodMonth));
       const res = await fetch(
         `/api/v1/annadhana/campaigns/${encodeURIComponent(slug)}/updates?${params.toString()}`,
       );
@@ -103,7 +116,7 @@ export function CampaignFeed({
       const data = (await res.json()) as { items?: FeedDay[] };
       return data.items ?? [];
     },
-    [slug, pageSize],
+    [slug, pageSize, periodYear, periodMonth],
   );
 
   const { items, sentinelRef, loading } = useInfiniteList({
@@ -122,28 +135,42 @@ export function CampaignFeed({
 
   return (
     <div className="flex flex-col gap-6">
-      {items.map((day) => (
-        <article
-          key={day.id}
-          className="flex flex-col gap-3 rounded-lg border p-4"
-        >
-          <header>
-            <h3 className="font-medium">
-              {format(toLocalDay(day.date), "EEEE, dd MMMM yyyy")}
-              {day.title ? (
-                <span className="text-muted-foreground"> · {day.title}</span>
-              ) : null}
-            </h3>
-            {day.description && (
-              <p className="text-muted-foreground mt-1 text-sm">
-                {day.description}
-              </p>
+      {items.map((day, index) => {
+        const monthLabel = format(toLocalDay(day.date), "MMMM yyyy");
+        const previousLabel =
+          index > 0
+            ? format(toLocalDay(items[index - 1].date), "MMMM yyyy")
+            : null;
+        return (
+          <div key={day.id} className="flex flex-col gap-3">
+            {monthLabel !== previousLabel && (
+              <h3 className="text-muted-foreground bg-background/95 sticky top-20 z-10 -mb-1 w-fit rounded-full border px-3 py-1 text-xs font-semibold tracking-wide uppercase backdrop-blur">
+                {monthLabel}
+              </h3>
             )}
-          </header>
-          <SponsorLine sponsors={day.sponsors} />
-          <MediaGrid media={day.media} />
-        </article>
-      ))}
+            <article className="flex flex-col gap-3 rounded-lg border p-4">
+              <header>
+                <h4 className="font-medium">
+                  {format(toLocalDay(day.date), "EEEE, dd MMMM yyyy")}
+                  {day.title ? (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      · {day.title}
+                    </span>
+                  ) : null}
+                </h4>
+                {day.description && (
+                  <p className="text-muted-foreground mt-1 text-sm">
+                    {day.description}
+                  </p>
+                )}
+              </header>
+              <SponsorLine sponsors={day.sponsors} />
+              <MediaGrid media={day.media} />
+            </article>
+          </div>
+        );
+      })}
       <div ref={sentinelRef} aria-hidden className="h-6" />
       {loading && (
         <p className="text-muted-foreground py-3 text-center text-sm">

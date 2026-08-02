@@ -21,7 +21,7 @@ export function UpcomingDays({ days }: { days: UpcomingDay[] }) {
         feed after each serving.
       </p>
 
-      <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+      <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {days.map((day) => (
           <li
             key={day.date}
