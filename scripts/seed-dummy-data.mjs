@@ -58,10 +58,6 @@ function picsum(seed, w = 1200, h = 800) {
   return `https://picsum.photos/seed/${seed}/${w}/${h}`;
 }
 
-function portrait(gender, index) {
-  return `https://randomuser.me/api/portraits/${gender === "Female" ? "women" : "men"}/${index}.jpg`;
-}
-
 const pick = (list, i) => list[i % list.length];
 
 // ---------- data ----------
@@ -253,7 +249,8 @@ async function seedStudents(db) {
       name,
       gender,
       student_type: type,
-      photo: portrait(gender, 20 + i),
+      // No photo: the site renders the Maatram logo as the placeholder.
+      photo: undefined,
       reason,
       amount,
       college_name: college ?? undefined,
@@ -598,7 +595,8 @@ async function seedDonations(db) {
 
   const categories = ["Education", "Annadhana Sevai", "Free Clinic", null];
   const docs = DONOR_NAMES.slice(0, 10).map((donorName, i) => {
-    const createdAt = new Date(now.getTime() - (i + 1) * 3600000 * 7);
+    // Spread across the past few months so the wall's month filter has data.
+    const createdAt = new Date(now.getTime() - (i * 13 + 1) * 86400000);
     const amountPaise = (500 + (i % 6) * 750) * 100;
     return {
       _id: `seed_order_${String(i + 1).padStart(3, "0")}`,

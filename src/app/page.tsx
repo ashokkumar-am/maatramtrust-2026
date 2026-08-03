@@ -13,7 +13,8 @@ import { FinalCta } from "@/components/home/final-cta";
 export default async function Home() {
   const [banners, donations] = await Promise.all([
     getActiveBanners(),
-    getPublicDonations(),
+    // Enough history for the donor wall's month filter.
+    getPublicDonations(50),
   ]);
 
   // First image banner becomes the hero backdrop; the rest keep the carousel.

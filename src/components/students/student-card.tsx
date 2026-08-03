@@ -30,9 +30,13 @@ function StudentPhoto({ photo, name }: { photo?: string; name: string }) {
           className="object-cover"
         />
       ) : (
-        <div className="text-muted-foreground flex h-full items-center justify-center text-4xl font-semibold">
-          {name.charAt(0)}
-        </div>
+        <Image
+          src="/maatram_logo.png"
+          alt={name}
+          fill
+          sizes="(max-width: 640px) 100vw, 33vw"
+          className="object-contain p-10"
+        />
       )}
     </div>
   );

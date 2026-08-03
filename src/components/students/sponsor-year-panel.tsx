@@ -110,7 +110,11 @@ export function SponsorYearPanel({
           No sponsors yet — be the first to support {student.name}.
         </p>
       ) : (
-        years.map((year) => <YearCard key={year.year} year={year} />)
+        <div className="grid gap-4 lg:grid-cols-2">
+          {years.map((year) => (
+            <YearCard key={year.year} year={year} />
+          ))}
+        </div>
       )}
     </div>
   );

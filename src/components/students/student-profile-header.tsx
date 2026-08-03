@@ -20,9 +20,14 @@ export function StudentProfileHeader({ student }: { student: StudentProfile }) {
             priority
           />
         ) : (
-          <div className="text-muted-foreground flex h-full items-center justify-center text-6xl font-semibold">
-            {student.name.charAt(0)}
-          </div>
+          <Image
+            src="/maatram_logo.png"
+            alt={student.name}
+            fill
+            sizes="(max-width: 640px) 100vw, 224px"
+            className="object-contain p-6"
+            priority
+          />
         )}
       </div>
 
