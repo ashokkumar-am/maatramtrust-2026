@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { Heart } from "lucide-react";
 import { auth, signIn, signOut } from "@/auth";
-import { getBlogCategories } from "@/lib/blog";
-import { BlogNavMenu } from "@/components/blog-nav-menu";
 import { MobileNav, type NavLink } from "@/components/mobile-nav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -14,35 +12,12 @@ const NAV_LINKS: NavLink[] = [
   { label: "Students", href: "/students" },
   { label: "Annadhana", href: "/annadhana" },
   { label: "Programs", href: "/programs" },
+  { label: "Blog", href: "/blog" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
 ];
 
-const MOBILE_LINKS: NavLink[] = [
-  { label: "Home", href: "/" },
-  ...NAV_LINKS.slice(0, 3),
-  { label: "Blog", href: "/blog" },
-  ...NAV_LINKS.slice(3),
-];
-
-/** "Blog" nav item: plain link without categories, dropdown menu with. */
-function BlogNavItem({
-  categories,
-}: {
-  categories: { name: string; slug: string }[];
-}) {
-  if (categories.length === 0) {
-    return (
-      <Link
-        href="/blog"
-        className="text-muted-foreground hover:text-foreground text-sm"
-      >
-        Blog
-      </Link>
-    );
-  }
-  return <BlogNavMenu categories={categories} />;
-}
+const MOBILE_LINKS: NavLink[] = [{ label: "Home", href: "/" }, ...NAV_LINKS];
 
 function initials(name?: string | null, email?: string | null) {
   const source = name?.trim() || email?.trim() || "?";
@@ -74,10 +49,7 @@ function SignOutForm({ className }: { className?: string }) {
  * hamburger sheet below `lg`.
  */
 export async function AuthHeader({ theme }: { theme: Theme }) {
-  const [session, blogCategories] = await Promise.all([
-    auth(),
-    getBlogCategories(),
-  ]);
+  const session = await auth();
   const user = session?.user;
 
   return (
@@ -88,17 +60,7 @@ export async function AuthHeader({ theme }: { theme: Theme }) {
             Maatram
           </Link>
           <div className="hidden items-center gap-5 lg:flex">
-            {NAV_LINKS.slice(0, 3).map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-muted-foreground hover:text-foreground text-sm"
-              >
-                {link.label}
-              </Link>
-            ))}
-            <BlogNavItem categories={blogCategories} />
-            {NAV_LINKS.slice(3).map((link) => (
+            {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
