@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Heart } from "lucide-react";
 import { auth, signIn, signOut } from "@/auth";
+import { getBlogCategories } from "@/lib/blog";
+import { BlogNavMenu } from "@/components/blog-nav-menu";
 import { MobileNav, type NavLink } from "@/components/mobile-nav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -8,16 +10,46 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 import type { Theme } from "@/lib/theme";
 
-const NAV_LINKS: NavLink[] = [
+const LEFT_LINKS: NavLink[] = [
   { label: "Students", href: "/students" },
   { label: "Annadhana", href: "/annadhana" },
   { label: "Programs", href: "/programs" },
-  { label: "Blog", href: "/blog" },
+];
+
+const RIGHT_LINKS: NavLink[] = [
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
 ];
 
-const MOBILE_LINKS: NavLink[] = [{ label: "Home", href: "/" }, ...NAV_LINKS];
+const MOBILE_LINKS: NavLink[] = [
+  { label: "Home", href: "/" },
+  ...LEFT_LINKS,
+  { label: "Blog", href: "/blog" },
+  ...RIGHT_LINKS,
+];
+
+function HeaderLink({ link }: { link: NavLink }) {
+  return (
+    <Link
+      href={link.href}
+      className="text-muted-foreground hover:text-foreground text-sm"
+    >
+      {link.label}
+    </Link>
+  );
+}
+
+/** "Blog" nav item: plain link without categories, categories menu with. */
+function BlogNavItem({
+  categories,
+}: {
+  categories: { name: string; slug: string }[];
+}) {
+  if (categories.length === 0) {
+    return <HeaderLink link={{ label: "Blog", href: "/blog" }} />;
+  }
+  return <BlogNavMenu categories={categories} />;
+}
 
 function initials(name?: string | null, email?: string | null) {
   const source = name?.trim() || email?.trim() || "?";
@@ -49,7 +81,10 @@ function SignOutForm({ className }: { className?: string }) {
  * hamburger sheet below `lg`.
  */
 export async function AuthHeader({ theme }: { theme: Theme }) {
-  const session = await auth();
+  const [session, blogCategories] = await Promise.all([
+    auth(),
+    getBlogCategories(),
+  ]);
   const user = session?.user;
 
   return (
@@ -60,14 +95,12 @@ export async function AuthHeader({ theme }: { theme: Theme }) {
             Maatram
           </Link>
           <div className="hidden items-center gap-5 lg:flex">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-muted-foreground hover:text-foreground text-sm"
-              >
-                {link.label}
-              </Link>
+            {LEFT_LINKS.map((link) => (
+              <HeaderLink key={link.href} link={link} />
+            ))}
+            <BlogNavItem categories={blogCategories} />
+            {RIGHT_LINKS.map((link) => (
+              <HeaderLink key={link.href} link={link} />
             ))}
           </div>
         </nav>
@@ -89,6 +122,17 @@ export async function AuthHeader({ theme }: { theme: Theme }) {
 
           {user ? (
             <div className="flex items-center gap-2">
+              {(user.role === "admin" || user.role === "editor") && (
+                <Link
+                  href="/dashboard"
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                    "hidden rounded-full sm:inline-flex",
+                  )}
+                >
+                  Dashboard
+                </Link>
+              )}
               <Avatar className="size-8">
                 {user.image ? (
                   <AvatarImage src={user.image} alt={user.name ?? "User"} />
@@ -104,7 +148,8 @@ export async function AuthHeader({ theme }: { theme: Theme }) {
               className="hidden lg:block"
               action={async () => {
                 "use server";
-                await signIn("google", { redirectTo: "/" });
+                // No redirectTo: return to the page the user signed in from.
+                await signIn("google");
               }}
             >
               <Button type="submit" size="sm" variant="outline">
@@ -122,7 +167,8 @@ export async function AuthHeader({ theme }: { theme: Theme }) {
                 <form
                   action={async () => {
                     "use server";
-                    await signIn("google", { redirectTo: "/" });
+                    // No redirectTo: return to the page the user signed in from.
+                    await signIn("google");
                   }}
                 >
                   <Button

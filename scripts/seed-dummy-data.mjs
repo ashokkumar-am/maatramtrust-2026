@@ -503,6 +503,95 @@ async function seedBanners(db) {
   console.log(`banners: ${banners.length}`);
 }
 
+const BLOG_CATEGORIES = [
+  "Animal Rescue",
+  "COVID-19 Support",
+  "Education",
+  "Health & Free Clinic",
+  "Women Empowerment",
+  "Environment",
+  "Disaster Relief",
+];
+
+const slugify = (value) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+async function seedBlog(db) {
+  const categories = db.collection("categories");
+  const posts = db.collection("blogposts");
+  await posts.deleteMany(SEED);
+  await categories.deleteMany(SEED);
+
+  // Reuse the site's existing blog categories; create only the missing ones
+  // from the standard set (real category data is never duplicated).
+  const existing = await categories
+    .find({ type: "blog", isActive: true })
+    .project({ name: 1, slug: 1 })
+    .toArray();
+  const bySlug = new Map(existing.map((c) => [c.slug, c]));
+
+  const missing = BLOG_CATEGORIES.map((name) => ({
+    name,
+    slug: slugify(name),
+  })).filter((c) => !bySlug.has(c.slug));
+  if (missing.length > 0) {
+    const { insertedIds } = await categories.insertMany(
+      missing.map((c, i) => ({
+        ...SEED,
+        name: c.name,
+        slug: c.slug,
+        type: "blog",
+        order: existing.length + i,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      })),
+    );
+    missing.forEach((c, i) =>
+      bySlug.set(c.slug, { ...c, _id: insertedIds[i] }),
+    );
+  }
+
+  const allCategories = [...bySlug.values()];
+  const postDocs = [];
+  allCategories.forEach(({ name, _id: categoryId }, i) => {
+    for (let p = 0; p < 2; p++) {
+      const title =
+        p === 0
+          ? `How our ${name.toLowerCase()} work changed lives this year`
+          : `Volunteer diaries: a day with the ${name.toLowerCase()} team`;
+      const publishedAt = new Date(
+        now.getTime() - (i * 2 + p + 1) * 9 * 86400000,
+      );
+      postDocs.push({
+        ...SEED,
+        title,
+        slug: slugify(title),
+        category: categoryId,
+        excerpt: `Stories from the field: what your support made possible in ${name.toLowerCase()} — in the words of the volunteers who were there.`,
+        content: [
+          `Every Maatram program begins with a phone call, and our ${name.toLowerCase()} work is no different. This season our volunteers answered dozens of them — and behind each one is a family whose day turned out different because someone gave.`,
+          `From our centre in Thiruvanmiyur, teams headed out with supplies, medicines, and a plan. What follows are the moments they brought back: small victories, hard lessons, and the neighbours who joined in along the way.`,
+          `None of this happens without our donors and 4,500+ volunteers. If these stories move you, there is always room for one more pair of hands — reach us through the contact page, or support the work directly on the donate page.`,
+        ].join("\n\n"),
+        coverImage: picsum(`blog-${slugify(name)}-${p}`, 1200, 675),
+        tags: [name, "Maatram", p === 0 ? "Impact" : "Volunteers"],
+        status: "published",
+        publishedAt,
+        createdAt: publishedAt,
+        updatedAt: publishedAt,
+      });
+    }
+  });
+  await posts.insertMany(postDocs);
+  console.log(
+    `blog: ${allCategories.length} categories (${missing.length} created), ${postDocs.length} published posts`,
+  );
+}
+
 async function seedDonations(db) {
   const col = db.collection("donations");
   await col.deleteMany(SEED);
@@ -545,6 +634,7 @@ try {
   await seedSponsorships(db, students);
   await seedAnnadhana(db);
   await seedBanners(db);
+  await seedBlog(db);
   await seedDonations(db);
 
   console.log(

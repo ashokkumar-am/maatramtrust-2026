@@ -37,13 +37,13 @@ export default async function BlogPostPage({
   if (canonical !== `/blog/${category}/${slug}`) redirect(canonical);
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
       <Link
-        href="/blog"
+        href={post.category ? categoryPath(post.category.slug) : "/blog"}
         className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1.5 text-sm"
       >
         <ArrowLeft className="size-4" />
-        Back to blog
+        Back to {post.category?.name ?? "blog"}
       </Link>
 
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -75,7 +75,7 @@ export default async function BlogPostPage({
             alt={post.title}
             fill
             unoptimized
-            sizes="(max-width: 768px) 100vw, 768px"
+            sizes="(max-width: 1152px) 100vw, 1152px"
             className="object-cover"
           />
         </div>
