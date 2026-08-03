@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { safeCallbackUrl } from "@/lib/safe-redirect";
 
 // Routes that require an authenticated user.
 const protectedRoutes = ["/dashboard", "/account"];
@@ -36,9 +37,15 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Authenticated user hitting the login page → send home.
+  // Authenticated user hitting the login page → honour the callback target
+  // (role-aware routing happens in /post-login), falling back to home.
   if (isAuthRoute && hasSession) {
-    return NextResponse.redirect(new URL("/", request.url));
+    const target = safeCallbackUrl(
+      request.nextUrl.searchParams.get("callbackUrl"),
+    );
+    return NextResponse.redirect(
+      new URL(`/post-login?to=${encodeURIComponent(target)}`, request.url),
+    );
   }
 
   return NextResponse.next();

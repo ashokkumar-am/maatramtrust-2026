@@ -25,26 +25,33 @@ import type { RazorpaySuccessResponse } from "@/types/razorpay";
 
 type SponsorStudent = { id: string; name: string; amount: number };
 
+/** The signed-in state (and profile, for prefilling) of the current visitor. */
+export interface SponsorViewer {
+  /** Only registered users can sponsor; guests are sent to sign in. */
+  signedIn: boolean;
+  name?: string;
+  email?: string;
+}
+
 /** Login page URL that returns the user to the sponsor listing afterwards. */
 const SIGN_IN_URL = "/login?callbackUrl=%2Fstudents";
 
 export function SponsorButton({
   student,
   funded = false,
-  signedIn = false,
+  viewer,
 }: {
   student: SponsorStudent;
   funded?: boolean;
-  /** Only registered users can sponsor; guests are sent to sign in. */
-  signedIn?: boolean;
+  viewer: SponsorViewer;
 }) {
   const { isReady, load } = useRazorpay();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(viewer.name ?? "");
+  const [email, setEmail] = useState(viewer.email ?? "");
   const [phone, setPhone] = useState("");
   const [amount, setAmount] = useState<number | "">(student.amount || 1000);
 
@@ -123,7 +130,7 @@ export function SponsorButton({
     );
   }
 
-  if (!signedIn) {
+  if (!viewer.signedIn) {
     return (
       <Button size="sm" onClick={() => router.push(SIGN_IN_URL)}>
         <HeartHandshake className="size-4" />

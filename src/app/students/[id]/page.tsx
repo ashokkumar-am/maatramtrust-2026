@@ -55,7 +55,11 @@ export default async function StudentDetailPage({ params }: PageProps) {
               name: student.name,
               amount: student.amount,
             }}
-            signedIn={Boolean(session?.user)}
+            viewer={{
+              signedIn: Boolean(session?.user),
+              name: session?.user?.name ?? undefined,
+              email: session?.user?.email ?? undefined,
+            }}
           />
         </Suspense>
       </div>

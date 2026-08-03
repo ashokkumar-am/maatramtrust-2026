@@ -2,7 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import type { StudentView } from "@/lib/student-view";
 import { educationDetail } from "@/lib/student-display";
-import { SponsorButton } from "@/components/students/sponsor-button";
+import {
+  SponsorButton,
+  type SponsorViewer,
+} from "@/components/students/sponsor-button";
 import { SponsorHistory } from "@/components/students/sponsor-history";
 import {
   Card,
@@ -49,10 +52,10 @@ function FundingStatus({ student }: { student: StudentView }) {
 /** Public card for one student: photo, context, sponsor history, and CTA. */
 export function StudentCard({
   student,
-  signedIn,
+  viewer,
 }: {
   student: StudentView;
-  signedIn: boolean;
+  viewer: SponsorViewer;
 }) {
   const detail = educationDetail(student);
 
@@ -89,7 +92,7 @@ export function StudentCard({
         </span>
         <SponsorButton
           funded={student.funded}
-          signedIn={signedIn}
+          viewer={viewer}
           student={{
             id: student.id,
             name: student.name,

@@ -2,7 +2,10 @@
 
 import { use } from "react";
 import type { getPublicSponsorYears, StudentProfile } from "@/lib/student-view";
-import { SponsorButton } from "@/components/students/sponsor-button";
+import {
+  SponsorButton,
+  type SponsorViewer,
+} from "@/components/students/sponsor-button";
 import {
   Card,
   CardContent,
@@ -16,19 +19,19 @@ interface SponsorYearPanelProps {
   /** Started (not awaited) in the Server Component; resolved here via `use`. */
   yearsPromise: ReturnType<typeof getPublicSponsorYears>;
   student: Pick<StudentProfile, "id" | "name" | "amount">;
-  signedIn: boolean;
+  viewer: SponsorViewer;
 }
 
 function FundingSummary({
   student,
   receivedThisYear,
   funded,
-  signedIn,
+  viewer,
 }: {
   student: SponsorYearPanelProps["student"];
   receivedThisYear: number;
   funded: boolean;
-  signedIn: boolean;
+  viewer: SponsorViewer;
 }) {
   return (
     <Card>
@@ -45,7 +48,7 @@ function FundingSummary({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <SponsorButton funded={funded} signedIn={signedIn} student={student} />
+        <SponsorButton funded={funded} viewer={viewer} student={student} />
       </CardContent>
     </Card>
   );
@@ -84,7 +87,7 @@ function YearCard({
 export function SponsorYearPanel({
   yearsPromise,
   student,
-  signedIn,
+  viewer,
 }: SponsorYearPanelProps) {
   const years = use(yearsPromise);
 
@@ -99,7 +102,7 @@ export function SponsorYearPanel({
         student={student}
         receivedThisYear={receivedThisYear}
         funded={funded}
-        signedIn={signedIn}
+        viewer={viewer}
       />
 
       {years.length === 0 ? (
